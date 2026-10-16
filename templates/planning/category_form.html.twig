@@ -1,0 +1,58 @@
+{% extends 'layout_app.html.twig' %}
+{% import '_icons.html.twig' as ui %}
+
+{% set editing = category.id is not null %}
+
+{% block title %}{{ editing ? 'Modifier la catégorie' : 'Nouvelle catégorie' }} · Buddy{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <a href="{{ path('app_category_index') }}" class="round-btn round-btn-sm" aria-label="Retour">{{ ui.icon('chevron-left', 20) }}</a>
+        <h1 class="page-header-title">{{ editing ? 'Modifier la catégorie' : 'Nouvelle catégorie' }}</h1>
+        <span class="round-btn-placeholder"></span>
+    </header>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'stack'}}) }}
+        <div class="card card-pad stack">
+            {{ form_row(form.name) }}
+
+            <div class="field">
+                <span class="field-label">Icône</span>
+                <div class="swatch-grid">
+                    {% for choice in form.icon %}
+                        <label class="swatch">
+                            <input type="radio" name="{{ choice.vars.full_name }}" value="{{ choice.vars.value }}"{{ choice.vars.checked ? ' checked' }}>
+                            <span class="swatch-inner" title="{{ choice.vars.value }}">{{ ui.icon(choice.vars.value, 22) }}</span>
+                        </label>
+                        {% do choice.setRendered %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="field">
+                <span class="field-label">Couleur</span>
+                <div class="swatch-grid">
+                    {% for choice in form.color %}
+                        <label class="swatch">
+                            <input type="radio" name="{{ choice.vars.full_name }}" value="{{ choice.vars.value }}"{{ choice.vars.checked ? ' checked' }}>
+                            <span class="swatch-inner swatch-color tone-{{ choice.vars.value }}" title="{{ choice.vars.value }}"></span>
+                        </label>
+                        {% do choice.setRendered %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Enregistrer</button>
+    {{ form_end(form) }}
+
+    {% if editing %}
+        {% if expenseCount > 0 %}
+            <p class="hint">{{ expenseCount }} dépense{{ expenseCount > 1 ? 's' }} dans cette catégorie : elle ne peut pas être supprimée.</p>
+        {% else %}
+            <form method="post" action="{{ path('app_category_delete', {id: category.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete-category' ~ category.id) }}">
+                <button type="submit" class="btn btn-danger-ghost btn-block">{{ ui.icon('trash', 18) }} Supprimer la catégorie</button>
+            </form>
+        {% endif %}
+    {% endif %}
+{% endblock %}

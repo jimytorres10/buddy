@@ -1,0 +1,9 @@
+{% import '_icons.html.twig' as ui %}
+{% for type, messages in app.flashes %}
+    {% for message in messages %}
+        <div class="flash flash-{{ type }}" role="status" data-controller="flash">
+            {{ ui.icon(type == 'error' ? 'x' : 'check', 18) }}
+            <span>{{ message }}</span>
+        </div>
+    {% endfor %}
+{% endfor %}

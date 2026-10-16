@@ -1,0 +1,8 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <main class="page page-plain">
+        {% include '_flashes.html.twig' %}
+        {% block content %}{% endblock %}
+    </main>
+{% endblock %}

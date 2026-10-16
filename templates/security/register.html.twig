@@ -1,0 +1,21 @@
+{% extends 'layout_plain.html.twig' %}
+
+{% block title %}Inscription · Buddy{% endblock %}
+
+{% block content %}
+    {% include 'security/_brand.html.twig' %}
+
+    <h1 class="auth-title">Bienvenue !</h1>
+    <p class="auth-subtitle">Crée ton compte en quelques secondes, puis on prépare ton budget ensemble.</p>
+
+    {{ form_start(form, {attr: {class: 'card card-pad stack', novalidate: 'novalidate'}}) }}
+        {{ form_row(form.firstName) }}
+        {{ form_row(form.email) }}
+        {{ form_row(form.plainPassword.first) }}
+        {{ form_row(form.plainPassword.second) }}
+        {{ form_errors(form.plainPassword) }}
+        <button class="btn btn-primary btn-block" type="submit">Créer mon compte</button>
+    {{ form_end(form) }}
+
+    <p class="auth-switch">Déjà inscrit ? <a href="{{ path('app_login') }}">Se connecter</a></p>
+{% endblock %}

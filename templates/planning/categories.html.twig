@@ -1,0 +1,22 @@
+{% extends 'layout_app.html.twig' %}
+{% import '_icons.html.twig' as ui %}
+
+{% block title %}Catégories · Buddy{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <a href="{{ path('app_planning') }}" class="round-btn round-btn-sm" aria-label="Retour">{{ ui.icon('chevron-left', 20) }}</a>
+        <h1 class="page-header-title">Catégories</h1>
+        <a href="{{ path('app_category_new') }}" class="round-btn round-btn-sm" aria-label="Nouvelle catégorie">{{ ui.icon('plus', 20) }}</a>
+    </header>
+
+    <div class="card card-body">
+        {% for category in categories %}
+            <a href="{{ path('app_category_edit', {id: category.id}) }}" class="row row-link">
+                {{ ui.pill(category.icon, category.color) }}
+                <span class="row-label">{{ category.name }}</span>
+                {{ ui.icon('chevron-right', 18) }}
+            </a>
+        {% endfor %}
+    </div>
+{% endblock %}

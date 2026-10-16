@@ -1,0 +1,18 @@
+{% extends 'layout_app.html.twig' %}
+{% import '_icons.html.twig' as ui %}
+
+{% block title %}{{ title }} · Buddy{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <a href="{{ path('app_planning') }}" class="round-btn round-btn-sm" aria-label="Retour">{{ ui.icon('chevron-left', 20) }}</a>
+        <h1 class="page-header-title">{{ title }}</h1>
+        <span class="round-btn-placeholder"></span>
+    </header>
+
+    {% include 'planning/_section_form.html.twig' with {
+        submit_label: 'Enregistrer',
+        manage_categories: true,
+        back_url: path('app_planning'),
+    } %}
+{% endblock %}

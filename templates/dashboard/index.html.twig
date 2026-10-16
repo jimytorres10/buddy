@@ -1,0 +1,101 @@
+{% extends 'layout_app.html.twig' %}
+{% import '_icons.html.twig' as ui %}
+
+{% block title %}Accueil · Buddy{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <h1 class="greeting">Bonjour {{ app.user.firstName }}</h1>
+        <a href="{{ path('app_menu') }}" class="round-btn" aria-label="Paramètres">{{ ui.icon('settings', 24) }}</a>
+    </header>
+
+    {# Carte principale : reste disponible + dernières dépenses #}
+    <section class="card">
+        <div class="card-head">
+            <div>
+                <h2 class="card-title">Reste ce mois-ci</h2>
+                <p class="card-sub">{{ month|month_label }}</p>
+            </div>
+            <span class="amount-xl {{ summary.remaining >= 0 ? 'is-positive' : 'is-negative' }}">{{ summary.remaining|money }}</span>
+        </div>
+        <div class="card-stats">
+            <div><span class="stat-label">Revenus</span><span class="stat-value">{{ summary.income|money }}</span></div>
+            <div><span class="stat-label">Fixes</span><span class="stat-value">{{ summary.fixed|money }}</span></div>
+            <div><span class="stat-label">Dépensé</span><span class="stat-value">{{ summary.spent|money }}</span></div>
+        </div>
+        <div class="card-body">
+            {% for expense in latest %}
+                <a href="{{ path('app_expense_edit', {id: expense.id}) }}" class="row row-link">
+                    {{ ui.pill(expense.category.icon, expense.category.color) }}
+                    <span class="row-label row-label-caps">{{ expense.displayLabel }}</span>
+                    <span class="row-amount">{{ expense.amount|money('-') }}</span>
+                </a>
+            {% else %}
+                <div class="empty-inline">
+                    Aucune dépense pour l'instant. <a href="{{ path('app_expense_new') }}">Ajoute la première</a>.
+                </div>
+            {% endfor %}
+        </div>
+        {% if latest is not empty %}
+            <a href="{{ path('app_expense_index') }}" class="card-foot-link">Voir toutes les dépenses {{ ui.icon('chevron-right', 18) }}</a>
+        {% endif %}
+    </section>
+
+    {# Raccourcis #}
+    <h2 class="section-title">Mes raccourcis</h2>
+    <div class="shortcuts">
+        <a href="{{ path('app_expense_new') }}" class="card shortcut">
+            {{ ui.pill('plus', 'green', 'lg') }}
+            <span class="shortcut-label">Ajouter une dépense</span>
+        </a>
+        <a href="{{ path('app_planning') }}" class="card shortcut">
+            {{ ui.pill('pie', 'teal', 'lg') }}
+            <span class="shortcut-label">Gérer mes budgets</span>
+        </a>
+    </div>
+
+    {# Budgets par catégorie #}
+    <h2 class="section-title">Mes budgets</h2>
+    {% if summary.budgets is empty %}
+        <a href="{{ path('app_planning_edit', {section: 'budgets'}) }}" class="card card-tile">
+            {{ ui.pill('pie', 'teal') }}
+            <span class="tile-label">Définir des budgets par catégorie</span>
+            {{ ui.icon('chevron-right', 20) }}
+        </a>
+    {% else %}
+        <div class="card card-body">
+            {% for line in summary.budgets %}
+                <a href="{{ path('app_expense_index', {categorie: line.category.id}) }}" class="budget-line">
+                    {{ ui.pill(line.category.icon, line.category.color) }}
+                    <div class="budget-line-main">
+                        <div class="budget-line-top">
+                            <span class="budget-line-name">{{ line.category.name }}</span>
+                            <span class="budget-line-amount{{ line.over ? ' is-negative' }}">{{ line.spent|money }} <small>/ {{ line.budget|money }}</small></span>
+                        </div>
+                        <div class="progress{{ line.over ? ' is-over' : (line.percent >= 80 ? ' is-warn') }}" role="progressbar" aria-valuenow="{{ line.percent }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ line.category.name }}">
+                            <span style="width: {{ line.percent }}%"></span>
+                        </div>
+                        {% if line.over %}
+                            <span class="budget-line-note is-negative">Dépassé de {{ (line.spent - line.budget)|money }}</span>
+                        {% else %}
+                            <span class="budget-line-note">Encore {{ (line.budget - line.spent)|money }}</span>
+                        {% endif %}
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if summary.unbudgeted is not empty %}
+        <h2 class="section-title">Hors budget</h2>
+        <div class="card card-body">
+            {% for line in summary.unbudgeted %}
+                <a href="{{ path('app_expense_index', {categorie: line.category.id}) }}" class="row row-link">
+                    {{ ui.pill(line.category.icon, line.category.color) }}
+                    <span class="row-label">{{ line.category.name }}</span>
+                    <span class="row-amount">{{ line.spent|money('-') }}</span>
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

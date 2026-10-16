@@ -1,0 +1,21 @@
+{% import '_icons.html.twig' as ui %}
+<div class="item-row" data-form-collection-target="item">
+    <div class="item-row-fields{{ item.category is defined ? ' has-category' }}">
+        <div class="item-field item-field-label">
+            {{ form_widget(item.label, {attr: {'aria-label': 'Libellé'}}) }}
+            {{ form_errors(item.label) }}
+        </div>
+        <div class="item-field item-field-amount">
+            {{ form_widget(item.amount, {attr: {'aria-label': 'Montant par mois'}}) }}
+            {{ form_errors(item.amount) }}
+        </div>
+        {% if item.category is defined %}
+            <div class="item-field item-field-category">
+                {{ form_widget(item.category, {attr: {'aria-label': 'Catégorie'}}) }}
+            </div>
+        {% endif %}
+    </div>
+    <button type="button" class="icon-btn icon-btn-danger" data-action="form-collection#remove" aria-label="Retirer cette ligne">
+        {{ ui.icon('trash', 18) }}
+    </button>
+</div>

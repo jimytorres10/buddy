@@ -1,0 +1,51 @@
+{% extends 'layout_plain.html.twig' %}
+{% import '_icons.html.twig' as ui %}
+
+{% block title %}Récapitulatif · Buddy{% endblock %}
+
+{% block content %}
+    {% include 'onboarding/_stepper.html.twig' %}
+
+    <h1 class="page-title">C'est prêt !</h1>
+    <p class="page-lead">Voici ton mois type. Tu pourras tout modifier depuis l'onglet Budget.</p>
+
+    {% set available = summary.income - summary.fixed %}
+    <div class="card">
+        <div class="card-head">
+            <div>
+                <h2 class="card-title">Reste à vivre</h2>
+                <p class="card-sub">Revenus − dépenses fixes</p>
+            </div>
+            <span class="amount-xl {{ available >= 0 ? 'is-positive' : 'is-negative' }}">{{ available|money }}</span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {{ ui.pill('arrow-in', 'green') }}
+                <span class="row-label">Revenus</span>
+                <span class="row-amount is-positive">{{ summary.income|money }}</span>
+            </div>
+            <div class="row">
+                {{ ui.pill('repeat', 'teal') }}
+                <span class="row-label">Dépenses fixes</span>
+                <span class="row-amount">{{ summary.fixed|money('-') }}</span>
+            </div>
+            <div class="row">
+                {{ ui.pill('pie', 'blue') }}
+                <span class="row-label">Budgets prévus</span>
+                <span class="row-amount">{{ summary.budgeted|money }}</span>
+            </div>
+        </div>
+    </div>
+
+    {% if summary.budgeted > available %}
+        <div class="alert alert-warning">Tes budgets dépassent ton reste à vivre de {{ (summary.budgeted - available)|money }}.</div>
+    {% elseif summary.budgeted > 0 %}
+        <div class="alert alert-success">Il te restera {{ (available - summary.budgeted)|money }} d'épargne potentielle si tu respectes tes budgets.</div>
+    {% endif %}
+
+    <form method="post" action="{{ path('app_onboarding_finish') }}" class="form-actions">
+        <a href="{{ path('app_onboarding_step', {step: previous}) }}" class="btn btn-ghost">{{ ui.icon('chevron-left', 18) }} Retour</a>
+        <input type="hidden" name="_token" value="{{ csrf_token('onboarding_finish') }}">
+        <button type="submit" class="btn btn-primary">Commencer</button>
+    </form>
+{% endblock %}

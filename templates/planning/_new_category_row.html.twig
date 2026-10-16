@@ -1,0 +1,19 @@
+{% import '_icons.html.twig' as ui %}
+<div class="item-row" data-form-collection-target="item">
+    <div class="item-row-fields new-category-fields">
+        <div class="item-field item-field-name">
+            {{ form_widget(row.name) }}
+            {{ form_errors(row.name) }}
+        </div>
+        <div class="item-field">
+            {{ form_widget(row.icon) }}
+        </div>
+        <div class="item-field">
+            {{ form_widget(row.amount) }}
+            {{ form_errors(row.amount) }}
+        </div>
+    </div>
+    <button type="button" class="icon-btn icon-btn-danger" data-action="form-collection#remove" aria-label="Retirer cette catégorie">
+        {{ ui.icon('trash', 18) }}
+    </button>
+</div>

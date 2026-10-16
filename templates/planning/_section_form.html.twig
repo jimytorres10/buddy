@@ -1,0 +1,84 @@
+{#
+    Corps de formulaire partagé par le wizard et les écrans de modification.
+    Variables : section, form, categories, submit_label, back_url (optionnel)
+#}
+{% import '_icons.html.twig' as ui %}
+
+{{ form_start(form, {attr: {novalidate: 'novalidate', class: 'stack'}}) }}
+    {{ form_errors(form) }}
+
+    {% if section == 'budgets' %}
+        <div class="card">
+            {% for category in categories %}
+                {% set field = form['c' ~ category.id] %}
+                <div class="budget-input-row">
+                    {% if manage_categories ?? false %}
+                        <a href="{{ path('app_category_edit', {id: category.id}) }}" class="pill-link" aria-label="Personnaliser {{ category.name }}">{{ ui.pill(category.icon, category.color) }}</a>
+                    {% else %}
+                        {{ ui.pill(category.icon, category.color) }}
+                    {% endif %}
+                    <label for="{{ field.vars.id }}" class="budget-input-label">{{ category.name }}</label>
+                    <div class="budget-input-amount">
+                        {{ form_widget(field) }}
+                        {{ form_errors(field) }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <p class="hint">Laisse vide les catégories sans budget. Tu pourras ajuster à tout moment.</p>
+
+        {# Catégories personnalisées #}
+        {% set rows = form.newCategories %}
+        {% set prototype %}{% include 'planning/_new_category_row.html.twig' with {row: rows.vars.prototype} only %}{% endset %}
+        <h2 class="section-title">Mes catégories perso</h2>
+        <div class="stack-sm"
+             data-controller="form-collection"
+             data-form-collection-index-value="{{ rows|length ? (rows|last).vars.name + 1 : 0 }}"
+             data-form-collection-prototype-value="{{ prototype|e('html_attr') }}">
+            <div class="card item-list" data-form-collection-target="container">
+                {% for row in rows %}
+                    {% include 'planning/_new_category_row.html.twig' with {row: row} only %}
+                {% endfor %}
+            </div>
+            <button type="button" class="btn btn-soft btn-block" data-action="form-collection#add">
+                {{ ui.icon('plus', 18) }} Créer une catégorie
+            </button>
+        </div>
+        {% do rows.setRendered %}
+        <p class="hint">
+            Animaux, vacances, sport… crée tes propres catégories avec leur budget.
+            {% if manage_categories ?? false %}<a href="{{ path('app_category_index') }}">Gérer toutes mes catégories</a>{% endif %}
+        </p>
+    {% else %}
+        {% set items = form.items %}
+        {% set prototype %}{% include 'planning/_item_row.html.twig' with {item: items.vars.prototype} only %}{% endset %}
+        <div class="stack-sm"
+             data-controller="form-collection"
+             data-form-collection-index-value="{{ items|length ? (items|last).vars.name + 1 : 0 }}"
+             data-form-collection-prototype-value="{{ prototype|e('html_attr') }}">
+            <div class="card item-list" data-form-collection-target="container">
+                {% for item in items %}
+                    {% include 'planning/_item_row.html.twig' with {item: item} only %}
+                {% endfor %}
+            </div>
+            <button type="button" class="btn btn-soft btn-block" data-action="form-collection#add">
+                {{ ui.icon('plus', 18) }} {{ section == 'revenus' ? 'Ajouter un revenu' : 'Ajouter une dépense fixe' }}
+            </button>
+        </div>
+        {% do items.setRendered %}
+        <p class="hint">
+            {% if section == 'revenus' %}
+                Salaire, aides, loyers perçus… tout ce qui rentre chaque mois.
+            {% else %}
+                Loyer, abonnements, assurances, crédit… ce qui sort chaque mois sans y penser.
+            {% endif %}
+        </p>
+    {% endif %}
+
+    <div class="form-actions">
+        {% if back_url ?? false %}
+            <a href="{{ back_url }}" class="btn btn-ghost">{{ ui.icon('chevron-left', 18) }} Retour</a>
+        {% endif %}
+        <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+    </div>
+{{ form_end(form) }}

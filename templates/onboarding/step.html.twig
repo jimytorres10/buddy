@@ -1,0 +1,25 @@
+{% extends 'layout_plain.html.twig' %}
+
+{% set intros = {
+    'revenus': ['Tes revenus', 'Combien gagnes-tu chaque mois ? Ajoute toutes tes sources de revenus.'],
+    'depenses-fixes': ['Tes dépenses fixes', 'Quelles dépenses reviennent chaque mois ? Elles seront déduites automatiquement.'],
+    'budgets': ['Tes budgets', 'Fixe un plafond mensuel pour les catégories que tu veux surveiller.'],
+} %}
+
+{% block title %}{{ intros[step][0] }} · Buddy{% endblock %}
+
+{% block content %}
+    {% include 'onboarding/_stepper.html.twig' %}
+
+    {% if index == 0 %}
+        <p class="eyebrow">Bonjour {{ app.user.firstName }} 👋</p>
+    {% endif %}
+    <h1 class="page-title">{{ intros[step][0] }}</h1>
+    <p class="page-lead">{{ intros[step][1] }}</p>
+
+    {% include 'planning/_section_form.html.twig' with {
+        section: step,
+        submit_label: 'Continuer',
+        back_url: previous ? path('app_onboarding_step', {step: previous}) : null,
+    } %}
+{% endblock %}

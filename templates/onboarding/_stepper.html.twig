@@ -1,0 +1,14 @@
+<div class="wizard-head">
+    <div class="wizard-meta">
+        <span class="brand-logo brand-logo-sm">B</span>
+        <span class="wizard-count">Étape {{ index + 1 }} sur {{ steps|length }}</span>
+        <a href="{{ path('app_logout') }}" class="link-muted" data-turbo="false">Quitter</a>
+    </div>
+    <ol class="stepper" aria-label="Progression">
+        {% for key, label in steps %}
+            <li class="stepper-item{{ loop.index0 < index ? ' is-done' }}{{ loop.index0 == index ? ' is-current' }}">
+                <span class="sr-only">{{ label }}</span>
+            </li>
+        {% endfor %}
+    </ol>
+</div>

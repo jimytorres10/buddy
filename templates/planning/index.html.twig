@@ -1,0 +1,91 @@
+{% extends 'layout_app.html.twig' %}
+{% import '_icons.html.twig' as ui %}
+
+{% block title %}Budget · Buddy{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <h1 class="greeting">Mon budget</h1>
+        <a href="{{ path('app_category_index') }}" class="round-btn" aria-label="Catégories">{{ ui.icon('tag', 22) }}</a>
+    </header>
+
+    {% set available = summary.income - summary.fixed %}
+    <section class="card">
+        <div class="card-head">
+            <div>
+                <h2 class="card-title">Reste à vivre</h2>
+                <p class="card-sub">Chaque mois, après les dépenses fixes</p>
+            </div>
+            <span class="amount-xl {{ available >= 0 ? 'is-positive' : 'is-negative' }}">{{ available|money }}</span>
+        </div>
+    </section>
+
+    <h2 class="section-title section-title-split">
+        <span>Revenus mensuels</span>
+        <a href="{{ path('app_planning_edit', {section: 'revenus'}) }}" class="section-link">Modifier</a>
+    </h2>
+    <div class="card card-body">
+        {% for income in incomes %}
+            <div class="row">
+                {{ ui.pill('arrow-in', 'green') }}
+                <span class="row-label">{{ income.label }}</span>
+                <span class="row-amount is-positive">{{ income.amount|money }}</span>
+            </div>
+        {% else %}
+            <a href="{{ path('app_planning_edit', {section: 'revenus'}) }}" class="empty-inline">Aucun revenu défini — ajouter</a>
+        {% endfor %}
+        {% if incomes|length > 1 %}
+            <div class="row row-total"><span class="row-label">Total</span><span class="row-amount is-positive">{{ summary.income|money }}</span></div>
+        {% endif %}
+    </div>
+
+    <h2 class="section-title section-title-split">
+        <span>Dépenses fixes</span>
+        <a href="{{ path('app_planning_edit', {section: 'depenses-fixes'}) }}" class="section-link">Modifier</a>
+    </h2>
+    <div class="card card-body">
+        {% for fixed in fixedExpenses %}
+            <div class="row">
+                {{ ui.pill(fixed.category ? fixed.category.icon : 'repeat', fixed.category ? fixed.category.color : 'teal') }}
+                <span class="row-text">
+                    <span class="row-label">{{ fixed.label }}</span>
+                    {% if fixed.category %}<span class="row-sub">{{ fixed.category.name }}</span>{% endif %}
+                </span>
+                <span class="row-amount">{{ fixed.amount|money('-') }}</span>
+            </div>
+        {% else %}
+            <a href="{{ path('app_planning_edit', {section: 'depenses-fixes'}) }}" class="empty-inline">Aucune dépense fixe — ajouter</a>
+        {% endfor %}
+        {% if fixedExpenses|length > 1 %}
+            <div class="row row-total"><span class="row-label">Total</span><span class="row-amount">{{ summary.fixed|money('-') }}</span></div>
+        {% endif %}
+    </div>
+
+    <h2 class="section-title section-title-split">
+        <span>Budgets par catégorie</span>
+        <a href="{{ path('app_planning_edit', {section: 'budgets'}) }}" class="section-link">Modifier</a>
+    </h2>
+    <div class="card card-body">
+        {% for line in summary.budgets %}
+            <div class="budget-line">
+                {{ ui.pill(line.category.icon, line.category.color) }}
+                <div class="budget-line-main">
+                    <div class="budget-line-top">
+                        <span class="budget-line-name">{{ line.category.name }}</span>
+                        <span class="budget-line-amount{{ line.over ? ' is-negative' }}">{{ line.spent|money }} <small>/ {{ line.budget|money }}</small></span>
+                    </div>
+                    <div class="progress{{ line.over ? ' is-over' : (line.percent >= 80 ? ' is-warn') }}"><span style="width: {{ line.percent }}%"></span></div>
+                </div>
+            </div>
+        {% else %}
+            <a href="{{ path('app_planning_edit', {section: 'budgets'}) }}" class="empty-inline">Aucun budget défini — ajouter</a>
+        {% endfor %}
+        {% if summary.budgets|length > 1 %}
+            <div class="row row-total"><span class="row-label">Total budgété</span><span class="row-amount">{{ summary.budgeted|money }}</span></div>
+        {% endif %}
+    </div>
+    <div class="section-actions">
+        <a href="{{ path('app_planning_edit', {section: 'budgets'}) }}" class="btn btn-soft">{{ ui.icon('plus', 18) }} Créer une catégorie</a>
+        <a href="{{ path('app_category_index') }}" class="btn btn-ghost">{{ ui.icon('tag', 18) }} Mes catégories</a>
+    </div>
+{% endblock %}

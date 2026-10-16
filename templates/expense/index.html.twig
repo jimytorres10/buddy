@@ -1,0 +1,60 @@
+{% extends 'layout_app.html.twig' %}
+{% import '_icons.html.twig' as ui %}
+
+{% block title %}Dépenses · Buddy{% endblock %}
+
+{% set filter = currentCategory ? {categorie: currentCategory.id} : {} %}
+
+{% block content %}
+    <header class="page-header">
+        <h1 class="greeting">Dépenses</h1>
+        <a href="{{ path('app_expense_new') }}" class="round-btn" aria-label="Ajouter une dépense">{{ ui.icon('plus', 24) }}</a>
+    </header>
+
+    <div class="month-nav">
+        <a href="{{ path('app_expense_index', filter|merge({mois: previous|date('Y-m')})) }}" class="round-btn round-btn-sm" aria-label="Mois précédent">{{ ui.icon('chevron-left', 20) }}</a>
+        <div class="month-nav-label">
+            <strong>{{ month|month_label }}</strong>
+            <span>{{ count }} dépense{{ count > 1 ? 's' }} · {{ total|money }}</span>
+        </div>
+        {% if isCurrentMonth %}
+            <span class="round-btn round-btn-sm is-disabled" aria-hidden="true">{{ ui.icon('chevron-right', 20) }}</span>
+        {% else %}
+            <a href="{{ path('app_expense_index', filter|merge({mois: next|date('Y-m')})) }}" class="round-btn round-btn-sm" aria-label="Mois suivant">{{ ui.icon('chevron-right', 20) }}</a>
+        {% endif %}
+    </div>
+
+    <nav class="chips chips-scroll" aria-label="Filtrer par catégorie">
+        <a href="{{ path('app_expense_index', {mois: month|date('Y-m')}) }}" class="chip{{ not currentCategory ? ' is-active' }}">Toutes</a>
+        {% for category in categories %}
+            <a href="{{ path('app_expense_index', {mois: month|date('Y-m'), categorie: category.id}) }}" class="chip{{ currentCategory and currentCategory.id == category.id ? ' is-active' }}">
+                <span class="chip-dot tone-{{ category.color }}"></span>{{ category.name }}
+            </a>
+        {% endfor %}
+    </nav>
+
+    {% for day in days %}
+        <h2 class="section-title section-title-split">
+            <span>{{ day.date|day_label }}</span>
+            <span>{{ day.total|money('-') }}</span>
+        </h2>
+        <div class="card card-body">
+            {% for expense in day.items %}
+                <a href="{{ path('app_expense_edit', {id: expense.id}) }}" class="row row-link">
+                    {{ ui.pill(expense.category.icon, expense.category.color) }}
+                    <span class="row-text">
+                        <span class="row-label row-label-caps">{{ expense.displayLabel }}</span>
+                        {% if expense.label %}<span class="row-sub">{{ expense.category.name }}</span>{% endif %}
+                    </span>
+                    <span class="row-amount">{{ expense.amount|money('-') }}</span>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card empty">
+            {{ ui.pill('list', 'teal', 'lg') }}
+            <p class="empty-title">Aucune dépense {{ currentCategory ? 'dans « ' ~ currentCategory.name ~ ' » ' }}ce mois-ci</p>
+            <a href="{{ path('app_expense_new') }}" class="btn btn-primary">{{ ui.icon('plus', 18) }} Ajouter une dépense</a>
+        </div>
+    {% endfor %}
+{% endblock %}

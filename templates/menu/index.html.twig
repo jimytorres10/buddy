@@ -1,0 +1,54 @@
+{% extends 'layout_app.html.twig' %}
+{% import '_icons.html.twig' as ui %}
+
+{% block title %}Menu · Buddy{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <h1 class="greeting">Menu</h1>
+    </header>
+
+    <section class="card card-pad profile">
+        <span class="avatar">{{ app.user.firstName|first|upper }}</span>
+        <div>
+            <p class="profile-name">{{ app.user.firstName }}</p>
+            <p class="profile-email">{{ app.user.email }}</p>
+        </div>
+    </section>
+
+    <h2 class="section-title">Apparence</h2>
+    <section class="card card-pad" data-controller="theme">
+        <div class="segmented" role="radiogroup" aria-label="Thème">
+            {% for value, item in {light: ['sun', 'Clair'], dark: ['moon', 'Sombre'], system: ['monitor', 'Auto']} %}
+                <label class="segmented-option">
+                    <input type="radio" name="theme" value="{{ value }}" data-theme-target="option" data-action="theme#choose">
+                    <span>{{ ui.icon(item[0], 18) }} {{ item[1] }}</span>
+                </label>
+            {% endfor %}
+        </div>
+    </section>
+
+    <h2 class="section-title">Mon budget</h2>
+    <div class="card card-body">
+        <a href="{{ path('app_planning_edit', {section: 'revenus'}) }}" class="row row-link">
+            {{ ui.pill('arrow-in', 'green') }}<span class="row-label">Revenus mensuels</span>{{ ui.icon('chevron-right', 18) }}
+        </a>
+        <a href="{{ path('app_planning_edit', {section: 'depenses-fixes'}) }}" class="row row-link">
+            {{ ui.pill('repeat', 'teal') }}<span class="row-label">Dépenses fixes</span>{{ ui.icon('chevron-right', 18) }}
+        </a>
+        <a href="{{ path('app_planning_edit', {section: 'budgets'}) }}" class="row row-link">
+            {{ ui.pill('pie', 'blue') }}<span class="row-label">Budgets par catégorie</span>{{ ui.icon('chevron-right', 18) }}
+        </a>
+        <a href="{{ path('app_category_index') }}" class="row row-link">
+            {{ ui.pill('tag', 'purple') }}<span class="row-label">Catégories</span>{{ ui.icon('chevron-right', 18) }}
+        </a>
+        <form method="post" action="{{ path('app_menu_restart_wizard') }}" class="row-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('restart_wizard') }}">
+            <button type="submit" class="row row-link row-button">
+                {{ ui.pill('refresh', 'orange') }}<span class="row-label">Refaire le wizard</span>{{ ui.icon('chevron-right', 18) }}
+            </button>
+        </form>
+    </div>
+
+    <a href="{{ path('app_logout') }}" class="btn btn-danger-ghost btn-block logout" data-turbo="false">{{ ui.icon('logout', 18) }} Se déconnecter</a>
+{% endblock %}

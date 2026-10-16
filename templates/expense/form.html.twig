@@ -1,0 +1,67 @@
+{% extends 'layout_app.html.twig' %}
+{% import '_icons.html.twig' as ui %}
+
+{% set editing = expense.id is not null %}
+
+{% block title %}{{ editing ? 'Modifier la dépense' : 'Nouvelle dépense' }} · Buddy{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <a href="{{ path('app_expense_index') }}" class="round-btn round-btn-sm" aria-label="Retour">{{ ui.icon('chevron-left', 20) }}</a>
+        <h1 class="page-header-title">{{ editing ? 'Modifier la dépense' : 'Nouvelle dépense' }}</h1>
+        <span class="round-btn-placeholder"></span>
+    </header>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'stack'}}) }}
+        <div class="card card-pad amount-card">
+            {{ form_label(form.amount) }}
+            {{ form_widget(form.amount) }}
+            {{ form_errors(form.amount) }}
+        </div>
+
+        <div class="field">
+            <span class="field-label">{{ form.category.vars.label }}</span>
+            <div class="category-picker">
+                {% for choice in form.category %}
+                    {% set category = (form.category.vars.choices|filter(c => c.value == choice.vars.value)|first).data %}
+                    <label class="category-option">
+                        <input type="radio" id="{{ choice.vars.id }}" name="{{ choice.vars.full_name }}" value="{{ choice.vars.value }}"{{ choice.vars.checked ? ' checked' }}>
+                        <span class="category-option-inner">
+                            {{ ui.pill(category.icon, category.color) }}
+                            <span>{{ category.name }}</span>
+                        </span>
+                    </label>
+                    {% do choice.setRendered %}
+                {% endfor %}
+            </div>
+            {{ form_errors(form.category) }}
+            <a href="{{ path('app_category_new') }}" class="link-small">{{ ui.icon('plus', 14) }} Nouvelle catégorie</a>
+        </div>
+
+        <div class="grid-2">
+            {{ form_row(form.date) }}
+            {{ form_row(form.label) }}
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg">{{ editing ? 'Enregistrer' : 'Ajouter la dépense' }}</button>
+    {{ form_end(form) }}
+
+    {% if editing %}
+        <div data-controller="dialog">
+            <button type="button" class="btn btn-danger-ghost btn-block" data-action="dialog#open">
+                {{ ui.icon('trash', 18) }} Supprimer cette dépense
+            </button>
+            <dialog class="sheet" data-dialog-target="dialog" data-action="click->dialog#backdrop">
+                <div class="sheet-inner">
+                    <h2 class="sheet-title">Supprimer cette dépense ?</h2>
+                    <p class="sheet-text">{{ expense.displayLabel }} · {{ expense.amount|money }} · {{ expense.date|date('d/m/Y') }}<br>Cette action est définitive.</p>
+                    <form method="post" action="{{ path('app_expense_delete', {id: expense.id}) }}" class="sheet-actions">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ expense.id) }}">
+                        <button type="button" class="btn btn-ghost" data-action="dialog#close">Annuler</button>
+                        <button type="submit" class="btn btn-danger">Supprimer</button>
+                    </form>
+                </div>
+            </dialog>
+        </div>
+    {% endif %}
+{% endblock %}
