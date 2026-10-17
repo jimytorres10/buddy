@@ -1,0 +1,10 @@
+{% import '_icons.html.twig' as ui %}
+{# En-tête de la ligne dépliée : un clic la replie. #}
+<a href="{{ path('app_expense_row', {id: expense.id}) }}" class="row row-link expense-open-head" aria-expanded="true" title="Replier">
+    {{ ui.pill(expense.category.icon, expense.category.color) }}
+    <span class="row-text">
+        <span class="row-label row-label-caps">{{ expense.displayLabel }}</span>
+        <span class="row-sub">{{ expense.category.name }}</span>
+    </span>
+    <span class="row-amount">{{ expense.amount|money('-') }}</span>
+</a>

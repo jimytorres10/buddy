@@ -22,12 +22,12 @@ class ExpenseType extends AbstractType
         $builder
             ->add('amount', AmountType::class, [
                 'label' => 'Montant',
-                'attr' => ['inputmode' => 'decimal', 'placeholder' => '0,00', 'step' => '0.01', 'min' => '0', 'class' => 'input-amount', 'autofocus' => true],
+                'attr' => ['inputmode' => 'decimal', 'placeholder' => '0,00', 'step' => '0.01', 'min' => '0', 'class' => 'input-amount', 'autofocus' => !$options['inline']],
             ])
             ->add('category', EntityType::class, [
                 'label' => 'Catégorie',
                 'class' => Category::class,
-                'expanded' => true,
+                'expanded' => !$options['inline'],
                 'query_builder' => fn (CategoryRepository $repo) => $repo->createQueryBuilder('c')
                     ->andWhere('c.user = :user')
                     ->setParameter('user', $user)
@@ -47,7 +47,8 @@ class ExpenseType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults(['data_class' => Expense::class]);
+        $resolver->setDefaults(['data_class' => Expense::class, 'inline' => false]);
+        $resolver->setAllowedTypes('inline', 'bool');
         $resolver->setRequired('user');
         $resolver->setAllowedTypes('user', User::class);
     }

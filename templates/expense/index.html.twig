@@ -4,7 +4,13 @@
 {% block title %}Dépenses · Buddy{% endblock %}
 {% block page_class %}page-medium{% endblock %}
 
-{% set filter = currentCategory ? {categorie: currentCategory.id} : {} %}
+{# Après une modification dans la liste, la page est rechargée par morphing : on garde la position. #}
+{% block head %}
+    <meta name="turbo-refresh-method" content="morph">
+    <meta name="turbo-refresh-scroll" content="preserve">
+{% endblock %}
+
+{% set filter =currentCategory ? {categorie: currentCategory.id} : {} %}
 
 {% block content %}
     <header class="page-header">
@@ -44,14 +50,7 @@
         </h2>
         <div class="card card-body">
             {% for expense in day.items %}
-                <a href="{{ path('app_expense_edit', {id: expense.id}) }}" class="row row-link">
-                    {{ ui.pill(expense.category.icon, expense.category.color) }}
-                    <span class="row-text">
-                        <span class="row-label row-label-caps">{{ expense.displayLabel }}</span>
-                        {% if expense.label %}<span class="row-sub">{{ expense.category.name }}</span>{% endif %}
-                    </span>
-                    <span class="row-amount">{{ expense.amount|money('-') }}</span>
-                </a>
+                {% include 'expense/_row.html.twig' %}
             {% endfor %}
         </div>
     {% else %}

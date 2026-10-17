@@ -1,0 +1,12 @@
+{% import '_icons.html.twig' as ui %}
+{# Ligne repliée : un clic charge le détail dans le cadre (Turbo Frame), sans quitter la page. #}
+<turbo-frame id="expense_{{ expense.id }}" class="expense-frame">
+    <a href="{{ path('app_expense_show', {id: expense.id}) }}" class="row row-link">
+        {{ ui.pill(expense.category.icon, expense.category.color) }}
+        <span class="row-text">
+            <span class="row-label row-label-caps">{{ expense.displayLabel }}</span>
+            {% if expense.label %}<span class="row-sub">{{ expense.category.name }}</span>{% endif %}
+        </span>
+        <span class="row-amount">{{ expense.amount|money('-') }}</span>
+    </a>
+</turbo-frame>

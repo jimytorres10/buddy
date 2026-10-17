@@ -144,6 +144,53 @@ class BuddyFlowTest extends WebTestCase
         $this->assertResponseStatusCodeSame(403);
     }
 
+    public function testExpenseDetailAndEditInsideList(): void
+    {
+        $user = $this->createUser('inline@example.com');
+        $category = static::getContainer()->get(CategoryRepository::class)->findOneBy(['user' => $user]);
+        $expense = (new Expense())->setUser($user)->setCategory($category)->setAmount(1250)->setLabel('Pharmacie');
+        $this->em->persist($expense);
+        $this->em->flush();
+        $this->client->loginUser($user);
+        $frame = ['HTTP_TURBO_FRAME' => 'expense_'.$expense->getId()];
+        $id = $expense->getId();
+
+        $crawler = $this->client->request('GET', '/depenses');
+        $this->assertSelectorExists('turbo-frame#expense_'.$id.' a[href="/depenses/'.$id.'"]');
+
+        // Détail déplié dans le cadre
+        $this->client->request('GET', '/depenses/'.$id, server: $frame);
+        $this->assertSelectorExists('turbo-frame#expense_'.$id.'.is-open');
+        $this->assertSelectorTextContains('.expense-facts', 'Pharmacie');
+        $this->assertSelectorExists('.expense-actions a[href="/depenses/'.$id.'/modifier"]');
+
+        // Formulaire dans le cadre : erreur → reste dans le cadre (422)
+        $crawler = $this->client->request('GET', '/depenses/'.$id.'/modifier', server: $frame);
+        $form = $crawler->filter('.expense-inline-form')->form();
+        $this->client->submit($form, ['expense[amount]' => ''], $frame);
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertSelectorExists('turbo-frame#expense_'.$id.' .field-errors');
+
+        // Succès → la liste est rechargée (turbo-stream refresh)
+        $this->client->submit($form, ['expense[amount]' => '20', 'expense[label]' => 'Pharmacie du centre'], $frame);
+        $this->assertResponseIsSuccessful();
+        $this->assertStringContainsString('action="refresh"', $this->client->getResponse()->getContent());
+        $this->em->clear();
+        $this->assertSame(2000, static::getContainer()->get(ExpenseRepository::class)->find($id)->getAmount());
+
+        // Replier, puis supprimer depuis le cadre
+        $this->client->request('GET', '/depenses/'.$id.'/ligne', server: $frame);
+        $this->assertSelectorTextContains('turbo-frame#expense_'.$id, 'Pharmacie du centre');
+        $crawler = $this->client->request('GET', '/depenses/'.$id, server: $frame);
+        $this->client->submit($crawler->filter('.sheet-actions')->form(), [], $frame);
+        $this->assertStringContainsString('action="refresh"', $this->client->getResponse()->getContent());
+        $this->assertNull(static::getContainer()->get(ExpenseRepository::class)->find($id));
+
+        // Dépense inconnue
+        $this->client->request('GET', '/depenses/999999');
+        $this->assertResponseStatusCodeSame(404);
+    }
+
     public function testCreateCustomCategoryWithBudget(): void
     {
         $user = $this->createUser('perso@example.com');

@@ -1,0 +1,31 @@
+{% import '_icons.html.twig' as ui %}
+<turbo-frame id="expense_{{ expense.id }}" class="expense-frame is-open">
+    {% include 'expense/_open_head.html.twig' %}
+    <div class="expense-panel">
+        <dl class="expense-facts">
+            <div><dt>Date</dt><dd>{{ expense.date|date('d/m/Y') }}</dd></div>
+            <div><dt>Catégorie</dt><dd><span class="chip-dot tone-{{ expense.category.color }}"></span>{{ expense.category.name }}</dd></div>
+            <div><dt>Libellé</dt><dd>{{ expense.label ?: '—' }}</dd></div>
+            <div><dt>Ajoutée le</dt><dd>{{ expense.createdAt|date('d/m/Y à H:i') }}</dd></div>
+            {% if imported %}
+                <div class="expense-fact-wide"><dt>Opération bancaire</dt><dd>{{ ui.icon('upload', 14) }} {{ imported.rawLabel }}</dd></div>
+            {% endif %}
+        </dl>
+
+        <div class="expense-actions" data-controller="dialog">
+            <a href="{{ path('app_expense_edit', {id: expense.id}) }}" class="btn btn-soft">{{ ui.icon('edit', 16) }} Modifier</a>
+            <button type="button" class="btn btn-danger-ghost" data-action="dialog#open">{{ ui.icon('trash', 16) }} Supprimer</button>
+            <dialog class="sheet" data-dialog-target="dialog" data-action="click->dialog#backdrop">
+                <div class="sheet-inner">
+                    <h2 class="sheet-title">Supprimer cette dépense ?</h2>
+                    <p class="sheet-text">{{ expense.displayLabel }} · {{ expense.amount|money }} · {{ expense.date|date('d/m/Y') }}<br>Cette action est définitive.</p>
+                    <form method="post" action="{{ path('app_expense_delete', {id: expense.id}) }}" class="sheet-actions">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ expense.id) }}">
+                        <button type="button" class="btn btn-ghost" data-action="dialog#close">Annuler</button>
+                        <button type="submit" class="btn btn-danger">Supprimer</button>
+                    </form>
+                </div>
+            </dialog>
+        </div>
+    </div>
+</turbo-frame>

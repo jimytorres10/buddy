@@ -1,0 +1,20 @@
+{% import '_icons.html.twig' as ui %}
+<turbo-frame id="expense_{{ expense.id }}" class="expense-frame is-open">
+    {% include 'expense/_open_head.html.twig' %}
+    <div class="expense-panel">
+        {{ form_start(form, {action: path('app_expense_edit', {id: expense.id}), attr: {novalidate: 'novalidate', class: 'expense-inline-form'}}) }}
+            <div class="grid-2">
+                {{ form_row(form.amount) }}
+                {{ form_row(form.date) }}
+            </div>
+            <div class="grid-2">
+                {{ form_row(form.category) }}
+                {{ form_row(form.label) }}
+            </div>
+            <div class="expense-actions">
+                <a href="{{ path('app_expense_show', {id: expense.id}) }}" class="btn btn-ghost">Annuler</a>
+                <button type="submit" class="btn btn-primary">{{ ui.icon('check', 16) }} Enregistrer</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</turbo-frame>
