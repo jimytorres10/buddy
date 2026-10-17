@@ -5,6 +5,7 @@ namespace App\Tests\Controller;
 use App\Entity\Budget;
 use App\Entity\Expense;
 use App\Entity\FixedExpense;
+use App\Entity\ImportedTransaction;
 use App\Entity\Income;
 use App\Entity\User;
 use App\Repository\CategoryRepository;
@@ -296,6 +297,16 @@ class BuddyFlowTest extends WebTestCase
         $this->assertCount(6, $crawler->filter('.trend-col'));
 
         $this->assertSelectorTextContains('.fixed-list', 'Loyer');
+        $this->assertSame('0,00 € / 700,00 €', str_replace("\u{00A0}", ' ', $crawler->filter('.area-fixed .section-title span')->last()->text()));
+
+        // Loyer pointé sur une opération bancaire de 690 € → en-tête « prélevé / total »
+        $loyer = static::getContainer()->get(FixedExpenseRepository::class)->findOneBy(['user' => $user, 'label' => 'Loyer']);
+        $tx = new ImportedTransaction($user, 'h-loyer', new \DateTimeImmutable('first day of this month'), 'PRLV LOYER', 'Loyer', -69000);
+        $tx->classify(ImportedTransaction::MATCHED, fixed: $loyer);
+        $this->em->persist($tx);
+        $this->em->flush();
+        $crawler = $this->client->request('GET', '/graphiques');
+        $this->assertSame('690,00 € / 700,00 €', str_replace("\u{00A0}", ' ', $crawler->filter('.area-fixed .section-title span')->last()->text()));
 
         $crawler = $this->client->request('GET', '/graphiques?mois=2020-01');
         $this->assertResponseIsSuccessful();

@@ -73,7 +73,7 @@
     {# 2. Dépenses fixes du mois + ajout rapide #}
     <h2 class="section-title section-title-split">
         <span>Dépenses fixes</span>
-        {% if fixedExpenses is not empty %}<span>{{ summary.fixed|money }}</span>{% endif %}
+        {% if fixedExpenses is not empty %}<span title="Déjà prélevé / total du mois">{{ fixedDebited|money }} / {{ summary.fixed|money }}</span>{% endif %}
     </h2>
     <section class="card card-pad chart-card">
         {% if fixedExpenses is empty %}

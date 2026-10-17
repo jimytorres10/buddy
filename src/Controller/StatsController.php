@@ -66,6 +66,9 @@ class StatsController extends AbstractController
     private function renderStats(User $user, \DateTimeImmutable $month, FormInterface $form, int $status = 200): Response
     {
         $fixed = array_values(array_filter($this->fixedExpenses->findForUser($user), fn (FixedExpense $f) => $f->isActiveIn($month)));
+        $pointed = $this->imports->findPointedFixedForMonth($user, $month);
+        // Déjà prélevé ce mois-ci : montant réel des opérations pointées sur les dépenses fixes du mois
+        $debited = array_sum(array_map(fn (FixedExpense $f) => isset($pointed[$f->getId()]) ? -$pointed[$f->getId()]->getAmount() : 0, $fixed));
 
         return $this->render('stats/index.html.twig', [
             'month' => $month,
@@ -73,7 +76,8 @@ class StatsController extends AbstractController
             'next' => $month->modify('+1 month'),
             'isCurrentMonth' => $month->format('Y-m') === date('Y-m'),
             'fixedExpenses' => $fixed,
-            'pointed' => $this->imports->findPointedFixedForMonth($user, $month),
+            'pointed' => $pointed,
+            'fixedDebited' => $debited,
             'fixedForm' => $form->createView(),
         ] + $this->report->build($user, $month), new Response(status: $status));
     }
