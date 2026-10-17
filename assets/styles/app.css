@@ -892,3 +892,23 @@ select.input {
 /* Les champs restent éditables malgré user-select: none sur la carte (sinon iOS bloque la saisie) */
 .triage-card input, .triage-card select { user-select: text; -webkit-user-select: text; }
 .triage-fixed-name { grid-column: 1 / -1; }
+
+/* Pointage sur une dépense fixe existante */
+.triage-match { display: flex; flex-direction: column; gap: 8px; }
+.triage-match-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; color: var(--text-2); }
+.triage-match-btn {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    padding: 12px 14px; border-radius: 16px; border: 2px solid var(--border); background: var(--surface-2); cursor: pointer;
+    transition: border-color .15s, background-color .15s;
+}
+.triage-match-btn:hover { border-color: var(--primary); }
+.triage-match-btn.is-best { border-color: var(--primary); background: var(--primary-soft); }
+.triage-match-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.triage-match-text > span { font-size: 13px; color: var(--muted); }
+.triage-match-warn { color: var(--warning) !important; }
+.triage-match-cta { display: inline-flex; align-items: center; gap: 4px; color: var(--primary); font-weight: 600; font-size: 14px; white-space: nowrap; }
+.triage-fixed + .triage-fixed { border-top: 0; padding-top: 0; }
+
+/* Dépenses fixes pointées ce mois-ci (écran Budget) */
+.pointed-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 500; color: var(--positive); }
+.pointed-badge.is-waiting { color: var(--muted); }

@@ -67,7 +67,7 @@ class TransactionImporter
             ->setDate($t->getDate())
             ->setLabel($label);
         $this->em->persist($expense);
-        $t->setLabel($label)->classify(ImportedTransaction::EXPENSE, $category, expense: $expense);
+        $t->classify(ImportedTransaction::EXPENSE, $category, expense: $expense);
         $this->em->flush();
     }
 
@@ -83,7 +83,7 @@ class TransactionImporter
             ->setStartMonth($start)
             ->setEndMonth($months ? $start->modify(\sprintf('+%d months', $months - 1)) : null);
         $this->em->persist($fixed);
-        $t->setLabel($label)->classify(ImportedTransaction::FIXED, $category, fixed: $fixed);
+        $t->classify(ImportedTransaction::FIXED, $category, fixed: $fixed);
         $this->em->flush();
     }
 
@@ -91,7 +91,7 @@ class TransactionImporter
     {
         $income = (new Income())->setUser($t->getUser())->setLabel(mb_substr($label, 0, 80))->setAmount($t->getAmount());
         $this->em->persist($income);
-        $t->setLabel($label)->classify(ImportedTransaction::INCOME, income: $income);
+        $t->classify(ImportedTransaction::INCOME, income: $income);
         $this->em->flush();
     }
 
@@ -101,13 +101,23 @@ class TransactionImporter
         $this->em->flush();
     }
 
+    /** Pointe l'opération sur une dépense fixe existante : elle est déjà comptée, on ne crée rien. */
+    public function matchFixedExpense(ImportedTransaction $t, FixedExpense $fixed): void
+    {
+        $t->classify(ImportedTransaction::MATCHED, $fixed->getCategory(), fixed: $fixed);
+        $this->em->flush();
+    }
+
     /** Annule la décision : supprime ce qui avait été créé et remet l'opération à trier. */
     public function undo(ImportedTransaction $t): void
     {
-        foreach ([$t->getExpense(), $t->getFixedExpense(), $t->getIncome()] as $created) {
-            if ($created) {
-                $this->em->remove($created);
-            }
+        // Une dépense fixe simplement pointée existait avant : on ne la supprime pas
+        $created = [$t->getExpense(), $t->getIncome()];
+        if (ImportedTransaction::FIXED === $t->getStatus()) {
+            $created[] = $t->getFixedExpense();
+        }
+        foreach (array_filter($created) as $entity) {
+            $this->em->remove($entity);
         }
         $t->reset();
         $this->em->flush();

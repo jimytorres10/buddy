@@ -35,7 +35,7 @@
             <form method="post" action="{{ path('app_import_classify', {id: t.id}) }}" class="triage-card card{{ t.credit ? ' is-credit' }}" data-swipe-target="card">
                 <input type="hidden" name="_token" value="{{ csrf_token('classify' ~ t.id) }}">
 
-                <span class="triage-stamp triage-stamp-right" aria-hidden="true">{{ t.credit ? 'Revenu' : (suggestion ? suggestion.name : 'Catégorie ?') }}</span>
+                <span class="triage-stamp triage-stamp-right" aria-hidden="true">{{ t.credit ? 'Revenu' : (fixedMatch.candidates is not empty ? 'Pointée' : (suggestion ? suggestion.name : 'Catégorie ?')) }}</span>
                 <span class="triage-stamp triage-stamp-left" aria-hidden="true">Ignorer</span>
                 <span class="triage-stamp triage-stamp-up" aria-hidden="true">Fixe</span>
 
@@ -54,14 +54,36 @@
                         <button type="submit" name="decision" value="income" class="btn btn-primary" data-swipe-target="right">{{ ui.icon('arrow-in', 18) }} Revenu mensuel</button>
                     </div>
                 {% else %}
+                    {% if fixedMatch.candidates is not empty %}
+                        <div class="triage-match">
+                            <p class="triage-match-title">{{ ui.icon('repeat', 16) }} C'est le prélèvement d'une dépense fixe que tu as déjà ?</p>
+                            {% for c in fixedMatch.candidates %}
+                                <button type="submit" name="match" value="{{ c.fixed.id }}" class="triage-match-btn{{ loop.first ? ' is-best' }}"{% if loop.first %} data-swipe-target="right"{% endif %}>
+                                    {{ ui.pill(c.fixed.category ? c.fixed.category.icon : 'repeat', c.fixed.category ? c.fixed.category.color : 'teal') }}
+                                    <span class="triage-match-text">
+                                        <strong>{{ c.fixed.label }}</strong>
+                                        <span>
+                                            {{ c.fixed.amount|money }}/mois
+                                            · {{ {learned: 'déjà pointée pour ce libellé', label: 'nom similaire', amount: 'même montant'}[c.reason] }}
+                                            {% if c.fixed.amount != -t.amount %}· <span class="is-negative">écart {{ (-t.amount - c.fixed.amount)|money('+-') }}</span>{% endif %}
+                                        </span>
+                                        {% if c.pointed %}<span class="triage-match-warn">Déjà pointée ce mois-ci ({{ c.pointed.date|date('d/m') }})</span>{% endif %}
+                                    </span>
+                                    <span class="triage-match-cta">{{ ui.icon('check', 18) }} Pointer</span>
+                                </button>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
                     <p class="triage-question">
+                        {% if fixedMatch.candidates is not empty %}Sinon, une dépense ponctuelle : {% endif %}
                         {% if suggestion %}Suggestion : <strong>{{ suggestion.name }}</strong> — ou choisis une autre catégorie{% else %}Dans quelle catégorie ?{% endif %}
                     </p>
                     <div class="triage-categories">
                         {% for category in categories %}
                             <button type="submit" name="category" value="{{ category.id }}"
                                     class="category-option-btn{{ suggestion and suggestion.id == category.id ? ' is-suggested' }}"
-                                    data-swipe-target="{{ suggestion and suggestion.id == category.id ? 'category right' : 'category' }}">
+                                    data-swipe-target="{{ suggestion and suggestion.id == category.id and fixedMatch.candidates is empty ? 'category right' : 'category' }}">
                                 {{ ui.pill(category.icon, category.color) }}
                                 <span>{{ category.name }}</span>
                                 {% if loop.index <= 9 %}<kbd class="desktop-only">{{ loop.index }}</kbd>{% endif %}
@@ -69,8 +91,24 @@
                         {% endfor %}
                     </div>
 
+                    {% if fixedMatch.all is not empty %}
+                        <details class="triage-fixed">
+                            <summary>{{ ui.icon('check', 16) }} Pointer sur une de mes dépenses fixes</summary>
+                            <div class="item-field">
+                                <label class="field-label" for="match-select">Cette opération correspond à</label>
+                                <select id="match-select" name="match_select" class="input">
+                                    {% for row in fixedMatch.all %}
+                                        <option value="{{ row.fixed.id }}">{{ row.fixed.label }} — {{ row.fixed.amount|money }}/mois{{ row.pointed ? ' (déjà pointée ce mois-ci)' }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <p class="item-period-hint">Elle est déjà comptée dans tes dépenses fixes : rien n'est ajouté, elle est juste marquée comme prélevée.</p>
+                            <button type="submit" name="decision" value="match" class="btn btn-soft btn-block">{{ ui.icon('check', 18) }} Pointer</button>
+                        </details>
+                    {% endif %}
+
                     <details class="triage-fixed" data-swipe-target="fixed">
-                        <summary>{{ ui.icon('repeat', 16) }} C'est une dépense fixe (abonnement, loyer, échéance…)</summary>
+                        <summary>{{ ui.icon('repeat', 16) }} Nouvelle dépense fixe (abonnement, loyer, échéance…)</summary>
                         <div class="triage-fixed-fields">
                             <div class="item-field triage-fixed-name">
                                 <label class="field-label" for="fixed-label">Nom de la dépense fixe</label>

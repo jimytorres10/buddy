@@ -46,7 +46,8 @@ class CategorySuggester
             $byName[mb_strtolower($category->getName())] = $category;
         }
 
-        $haystack = ' '.mb_strtoupper($transaction->getRawLabel()).' ';
+        // Sans accents : « Intermarché » doit trouver INTERMARCHE
+        $haystack = ' '.strtr(mb_strtoupper($transaction->getRawLabel()), ['É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E', 'À' => 'A', 'Â' => 'A', 'Ç' => 'C', 'Ô' => 'O', 'Î' => 'I', 'Ï' => 'I', 'Û' => 'U', 'Ù' => 'U']).' ';
         foreach (self::KEYWORDS as $name => $keywords) {
             if (!isset($byName[$name])) {
                 continue;

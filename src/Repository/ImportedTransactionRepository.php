@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Category;
+use App\Entity\FixedExpense;
 use App\Entity\ImportedTransaction;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -83,6 +84,50 @@ class ImportedTransactionRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
 
         return $row?->getCategory();
+    }
+
+    /** Dépense fixe sur laquelle un même libellé a déjà été pointé ou créé. */
+    public function findLearnedFixedExpense(User $user, string $label): ?FixedExpense
+    {
+        $row = $this->createQueryBuilder('t')
+            ->andWhere('t.user = :user')
+            ->andWhere('t.label = :label')
+            ->andWhere('t.fixedExpense IS NOT NULL')
+            ->setParameter('user', $user)
+            ->setParameter('label', $label)
+            ->orderBy('t.classifiedAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $row?->getFixedExpense();
+    }
+
+    /**
+     * Opérations rattachées à une dépense fixe pour le mois donné, indexées par id de dépense fixe.
+     *
+     * @return array<int, ImportedTransaction>
+     */
+    public function findPointedFixedForMonth(User $user, \DateTimeImmutable $month): array
+    {
+        $start = $month->modify('first day of this month midnight');
+        $rows = $this->createQueryBuilder('t')
+            ->andWhere('t.user = :user')
+            ->andWhere('t.fixedExpense IS NOT NULL')
+            ->andWhere('t.date >= :start AND t.date < :end')
+            ->setParameter('user', $user)
+            ->setParameter('start', $start, 'date_immutable')
+            ->setParameter('end', $start->modify('+1 month'), 'date_immutable')
+            ->orderBy('t.date', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $indexed = [];
+        foreach ($rows as $row) {
+            $indexed[$row->getFixedExpense()->getId()] ??= $row;
+        }
+
+        return $indexed;
     }
 
     /** Nombre d'opérations par statut. @return array<string, int> */

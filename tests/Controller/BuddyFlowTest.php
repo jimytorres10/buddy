@@ -359,6 +359,38 @@ class BuddyFlowTest extends WebTestCase
         $this->assertSame('Abonnements', $fixed[0]->getCategory()->getName());
         $this->assertSame(1, static::getContainer()->get(\App\Repository\IncomeRepository::class)->count(['user' => $user]));
 
+        // L'écran Budget montre Netflix comme prélevée ce mois-ci (opération du 15/10)
+        if ('2026-10' === date('Y-m')) {
+            $this->client->request('GET', '/budget');
+            $this->assertSelectorTextContains('.pointed-badge', 'Prélevée le 15/10');
+        }
+
+        // Relevé de novembre : le prélèvement Netflix est proposé au pointage (même libellé déjà vu)
+        $ofx = sys_get_temp_dir().'/nov'.uniqid().'.ofx';
+        file_put_contents($ofx, "<OFX><BANKTRANLIST>\n<STMTTRN><DTPOSTED>20261115<TRNAMT>-13.99<FITID>NOV1<NAME>PRLV SEPA NETFLIX.COM\n</BANKTRANLIST></OFX>");
+        $crawler = $this->client->request('GET', '/import');
+        $form = $crawler->selectButton('Importer et trier')->form();
+        $form['form[file]']->upload($ofx);
+        $this->client->submit($form);
+        $crawler = $this->client->request('GET', '/import/tri');
+        $this->assertSelectorTextContains('.triage-match-btn.is-best', 'Netflix');
+        $this->assertSelectorTextContains('.triage-match-btn.is-best', 'déjà pointée pour ce libellé');
+        $this->client->submit($crawler->filter('.triage-match-btn.is-best')->form());
+
+        $this->em->clear();
+        $this->assertCount(1, static::getContainer()->get(FixedExpenseRepository::class)->findForUser($user));
+        $this->assertSame(3, static::getContainer()->get(ExpenseRepository::class)->count(['user' => $user]));
+        $november = static::getContainer()->get(\App\Repository\ImportedTransactionRepository::class)
+            ->findPointedFixedForMonth($user, new \DateTimeImmutable('2026-11-01'));
+        $this->assertSame('matched', reset($november)->getStatus());
+
+        // Annuler un pointage ne supprime pas la dépense fixe
+        $crawler = $this->client->request('GET', '/import/tri');
+        $this->client->submit($crawler->filter('#undo-form')->form());
+        $this->em->clear();
+        $this->assertCount(1, static::getContainer()->get(FixedExpenseRepository::class)->findForUser($user));
+        unlink($ofx);
+
         // Ré-import du même fichier : tout est reconnu comme doublon
         $crawler = $this->client->request('GET', '/import');
         $form = $crawler->selectButton('Importer et trier')->form();

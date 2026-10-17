@@ -11,7 +11,7 @@ class LabelCleaner
     private const PREFIXES = [
         'PAIEMENT PAR CARTE', 'PAIEMENT CB', 'ACHAT CB', 'CARTE', 'CB',
         'PRELEVEMENT SEPA', 'PRELEVEMENT', 'PRLV SEPA', 'PRLV',
-        'VIREMENT EN VOTRE FAVEUR', 'VIREMENT SEPA RECU', 'VIREMENT SEPA EMIS', 'VIREMENT SEPA', 'VIREMENT', 'VIR SEPA RECU', 'VIR SEPA', 'VIR INST', 'VIR',
+        'VIREMENT EN VOTRE FAVEUR', 'VIREMENT EMIS VERS', 'VIREMENT EMIS', 'VIREMENT SEPA RECU', 'VIREMENT SEPA EMIS', 'VIREMENT SEPA', 'VIREMENT', 'VIR SEPA RECU', 'VIR SEPA', 'VIR INST', 'VIR',
         'RETRAIT AU DISTRIBUTEUR', 'RETRAIT DAB', 'RETRAIT',
         'AVOIR CARTE', 'REMBOURSEMENT CB', 'ECHEANCE PRET', 'COTISATION',
     ];
@@ -20,6 +20,14 @@ class LabelCleaner
     {
         $label = mb_strtoupper(trim(preg_replace('/\s+/u', ' ', $raw)));
         $label = strtr($label, ['É' => 'E', 'È' => 'E', 'Ê' => 'E', 'À' => 'A', 'Ç' => 'C', 'Ô' => 'O', 'Î' => 'I', 'Û' => 'U']);
+
+        // Crédit Agricole : « Paiement par carte X0277 VILLE 01/10 - Enseigne » → l'enseigne est après le tiret ;
+        // pour les autres opérations, ce qui suit le tiret est une référence (mandat, n° de contrat…).
+        if (str_contains($label, ' - ')) {
+            $label = str_starts_with($label, 'PAIEMENT PAR CARTE') && '' !== trim(substr($label, strrpos($label, ' - ') + 3))
+                ? trim(substr($label, strrpos($label, ' - ') + 3))
+                : trim(substr($label, 0, strpos($label, ' - ')));
+        }
 
         // Dates (11/10, 11/10/26), références de carte, longues suites de chiffres, références de fin
         $label = preg_replace('/\b\d{2}\/\d{2}(\/\d{2,4})?\b/', ' ', $label);

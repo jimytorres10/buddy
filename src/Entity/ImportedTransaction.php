@@ -18,6 +18,8 @@ class ImportedTransaction
     public const FIXED = 'fixed';
     public const INCOME = 'income';
     public const IGNORED = 'ignored';
+    /** Pointée sur une dépense fixe existante (rien n'est créé, déjà comptée dans les fixes). */
+    public const MATCHED = 'matched';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]

@@ -68,6 +68,11 @@
                             {{ status == 'past' ? '· terminée' : (status == 'upcoming' ? '· à venir') }}
                         </span>
                     {% endif %}
+                    {% if pointed[fixed.id] is defined %}
+                        <span class="pointed-badge" title="{{ pointed[fixed.id].rawLabel }}">{{ ui.icon('check', 13) }} Prélevée le {{ pointed[fixed.id].date|date('d/m') }}{% if pointed[fixed.id].amount != -fixed.amount %} ({{ (-pointed[fixed.id].amount)|money }}){% endif %}</span>
+                    {% elseif usesImports and status == 'active' %}
+                        <span class="pointed-badge is-waiting">Pas encore pointée ce mois-ci</span>
+                    {% endif %}
                 </span>
                 <span class="row-amount">{{ fixed.amount|money('-') }}</span>
             </div>

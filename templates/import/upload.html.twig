@@ -46,6 +46,6 @@
     </section>
 
     {% if classified > 0 %}
-        <p class="hint">Déjà trié : {{ counts.expense ?? 0 }} dépense{{ (counts.expense ?? 0) > 1 ? 's' }}, {{ counts.fixed ?? 0 }} dépense{{ (counts.fixed ?? 0) > 1 ? 's' }} fixe{{ (counts.fixed ?? 0) > 1 ? 's' }}, {{ counts.income ?? 0 }} revenu{{ (counts.income ?? 0) > 1 ? 's' }}, {{ counts.ignored ?? 0 }} ignorée{{ (counts.ignored ?? 0) > 1 ? 's' }}.</p>
+        <p class="hint">Déjà trié : {{ counts.expense ?? 0 }} dépense{{ (counts.expense ?? 0) > 1 ? 's' }}, {{ counts.fixed ?? 0 }} dépense{{ (counts.fixed ?? 0) > 1 ? 's' }} fixe{{ (counts.fixed ?? 0) > 1 ? 's' }}, {{ counts.matched ?? 0 }} pointée{{ (counts.matched ?? 0) > 1 ? 's' }} sur une dépense fixe, {{ counts.income ?? 0 }} revenu{{ (counts.income ?? 0) > 1 ? 's' }}, {{ counts.ignored ?? 0 }} ignorée{{ (counts.ignored ?? 0) > 1 ? 's' }}.</p>
     {% endif %}
 {% endblock %}

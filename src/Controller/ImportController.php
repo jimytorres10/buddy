@@ -5,6 +5,8 @@ namespace App\Controller;
 use App\Entity\ImportedTransaction;
 use App\Entity\User;
 use App\Import\CategorySuggester;
+use App\Import\FixedExpenseMatcher;
+use App\Repository\FixedExpenseRepository;
 use App\Import\TransactionImporter;
 use App\Repository\CategoryRepository;
 use App\Repository\ImportedTransactionRepository;
@@ -74,6 +76,7 @@ class ImportController extends AbstractController
         ImportedTransactionRepository $transactions,
         CategoryRepository $categories,
         CategorySuggester $suggester,
+        FixedExpenseMatcher $matcher,
     ): Response {
         $transaction = $transactions->findNextPending($user);
         $categoryList = $categories->findForUser($user);
@@ -82,6 +85,7 @@ class ImportController extends AbstractController
             'transaction' => $transaction,
             'categories' => $categoryList,
             'suggestion' => $transaction ? $suggester->suggest($transaction, $categoryList) : null,
+            'fixedMatch' => $transaction ? $matcher->match($transaction) : ['candidates' => [], 'all' => []],
             'remaining' => $transactions->countPending($user),
             'canUndo' => null !== $transactions->findLastClassified($user),
         ]);
@@ -89,7 +93,14 @@ class ImportController extends AbstractController
 
     #[Route('/{id}/classer', name: 'app_import_classify', methods: ['POST'], requirements: ['id' => '\d+'])]
     #[IsGranted(OwnerVoter::MANAGE, 'transaction')]
-    public function classify(ImportedTransaction $transaction, Request $request, #[CurrentUser] User $user, TransactionImporter $importer, CategoryRepository $categories): Response
+    public function classify(
+        ImportedTransaction $transaction,
+        Request $request,
+        #[CurrentUser] User $user,
+        TransactionImporter $importer,
+        CategoryRepository $categories,
+        FixedExpenseRepository $fixedExpenses,
+    ): Response
     {
         $payload = $request->getPayload();
         if (!$transaction->isPending() || !$this->isCsrfTokenValid('classify'.$transaction->getId(), $payload->getString('_token'))) {
@@ -102,7 +113,14 @@ class ImportController extends AbstractController
         $months = $int('months');
         // Un bouton de catégorie envoie seulement « category » : c'est une dépense ponctuelle.
         // Le formulaire « dépense fixe » a son propre champ (fixed_category) pour ne pas se mélanger.
-        $decision = $payload->getString('decision') ?: ($int('category') ? 'expense' : '');
+        // De même, un bouton « correspond à » envoie seulement « match » (id de la dépense fixe).
+        $decision = $payload->getString('decision') ?: match (true) {
+            $int('match') > 0 => 'match',
+            $int('category') > 0 => 'expense',
+            default => '',
+        };
+        $fixedId = $int('match') ?: $int('match_select');
+        $fixed = 'match' === $decision && $fixedId ? $fixedExpenses->findOneBy(['id' => $fixedId, 'user' => $user]) : null;
         $categoryId = 'fixed' === $decision ? $int('fixed_category') : $int('category');
         if ('fixed' === $decision && '' !== trim($payload->getString('fixed_label'))) {
             $label = mb_substr(trim($payload->getString('fixed_label')), 0, 80);
@@ -119,6 +137,9 @@ class ImportController extends AbstractController
             'income' => $transaction->isCredit()
                 ? $importer->toIncome($transaction, $label)
                 : $this->addFlash('error', 'Un débit ne peut pas être un revenu.'),
+            'match' => $fixed && !$transaction->isCredit()
+                ? $importer->matchFixedExpense($transaction, $fixed)
+                : $this->addFlash('error', 'Choisis la dépense fixe correspondante.'),
             'ignore' => $importer->ignore($transaction),
             default => null,
         };

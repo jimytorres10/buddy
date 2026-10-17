@@ -9,6 +9,7 @@ use App\Form\CategoryType;
 use App\Form\MonthBudgetsType;
 use App\Repository\BudgetRepository;
 use App\Repository\CategoryRepository;
+use App\Repository\ImportedTransactionRepository;
 use App\Repository\MonthlyBudgetRepository;
 use App\Repository\ExpenseRepository;
 use App\Repository\FixedExpenseRepository;
@@ -39,11 +40,17 @@ class PlanningController extends AbstractController
         MonthSummary $summary,
         IncomeRepository $incomes,
         FixedExpenseRepository $fixedExpenses,
+        ImportedTransactionRepository $imports,
     ): Response {
+        $now = new \DateTimeImmutable();
+
         return $this->render('planning/index.html.twig', [
-            'summary' => $summary->compute($user, new \DateTimeImmutable()),
+            'summary' => $summary->compute($user, $now),
             'incomes' => $incomes->findForUser($user),
             'fixedExpenses' => $fixedExpenses->findForUser($user),
+            // Pointage du mois (seulement si l'utilisateur importe ses relevés)
+            'pointed' => $imports->findPointedFixedForMonth($user, $now),
+            'usesImports' => $imports->count(['user' => $user]) > 0,
         ]);
     }
 

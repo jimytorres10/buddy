@@ -86,5 +86,9 @@ class StatementParserTest extends TestCase
         yield ['VIREMENT EN VOTRE FAVEUR SALAIRE ACME', 'Salaire Acme'];
         yield ['CB BOULANGERIE DE LA GARE 02/10/26', 'Boulangerie De La Gare'];
         yield ['RETRAIT AU DISTRIBUTEUR 12/10', 'Retrait Au Distributeur'];
+        // Format Crédit Agricole : l'enseigne après le tiret pour les cartes, référence ignorée sinon
+        yield ['Paiement par carte X0123 SAINT JEAN 01/10 - Intermarché', 'Intermarche'];
+        yield ['Prélèvement FREE MOBILE - FM123456 Free Mobile mandat ABC', 'Free Mobile'];
+        yield ['Virement émis vers M DUPONT LOYER', 'M Dupont Loyer'];
     }
 }
