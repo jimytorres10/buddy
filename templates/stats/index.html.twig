@@ -69,6 +69,66 @@
     </section>
 
     </div>
+    <div class="desk-block area-fixed">
+    {# 2. Dépenses fixes du mois + ajout rapide #}
+    <h2 class="section-title section-title-split">
+        <span>Dépenses fixes</span>
+        {% if fixedExpenses is not empty %}<span>{{ summary.fixed|money }}</span>{% endif %}
+    </h2>
+    <section class="card card-pad chart-card">
+        {% if fixedExpenses is empty %}
+            <p class="empty-inline">Aucune dépense fixe en {{ month|month_label|lower }}.</p>
+        {% else %}
+            <div class="fixed-list">
+                {% for fixed in fixedExpenses %}
+                    <div class="row">
+                        {{ ui.pill(fixed.category ? fixed.category.icon : 'repeat', fixed.category ? fixed.category.color : 'teal') }}
+                        <span class="row-text">
+                            <span class="row-label">{{ fixed.label }}</span>
+                            {% if fixed.endMonth %}
+                                <span class="period-badge">{{ ui.icon('calendar', 13) }} Jusqu'à {{ fixed.endMonth|month_label|lower }}</span>
+                            {% elseif fixed.category %}
+                                <span class="row-sub">{{ fixed.category.name }}</span>
+                            {% endif %}
+                            {% if pointed[fixed.id] is defined %}
+                                <span class="pointed-badge" title="{{ pointed[fixed.id].rawLabel }}">{{ ui.icon('check', 13) }} Prélevée le {{ pointed[fixed.id].date|date('d/m') }}</span>
+                            {% endif %}
+                        </span>
+                        <span class="row-amount">{{ fixed.amount|money('-') }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% set fixed_failed = fixedForm.vars.submitted and not fixedForm.vars.valid %}
+        <details class="quick-fixed"{{ fixed_failed ? ' open' }}>
+            <summary class="btn btn-soft chart-action">{{ ui.icon('plus', 16) }} Ajouter une dépense fixe dès {{ month|month_label|lower }}</summary>
+            {{ form_start(fixedForm, {attr: {novalidate: 'novalidate', class: 'quick-fixed-form'}}) }}
+                <div class="grid-2">
+                    {{ form_row(fixedForm.label) }}
+                    {{ form_row(fixedForm.amount) }}
+                </div>
+                {{ form_row(fixedForm.category) }}
+                <div class="grid-2">
+                    {{ form_row(fixedForm.startMonth, {label: 'À partir de'}) }}
+                    <div class="field">
+                        {{ form_label(fixedForm.duration, 'Pendant (facultatif)') }}
+                        <div class="input-suffixed">
+                            {{ form_widget(fixedForm.duration) }}
+                            <span class="input-suffix">mois</span>
+                        </div>
+                        {{ form_errors(fixedForm.duration) }}
+                    </div>
+                </div>
+                {{ form_errors(fixedForm.endMonth) }}
+                {% do fixedForm.endMonth.setRendered %}
+                <p class="hint">Sans durée, elle revient tous les mois.</p>
+                <button type="submit" class="btn btn-primary btn-block">Ajouter</button>
+            {{ form_end(fixedForm) }}
+        </details>
+    </section>
+
+    </div>
     <div class="desk-block area-budgets">
     {# 2. Budgets vs réel #}
     <h2 class="section-title section-title-split">

@@ -788,8 +788,9 @@ select.input {
     .desk-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px 28px; align-items: start; }
     .desk-col, .desk-block { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
     .desk-grid-stats {
-        grid-template-areas: "income budgets" "categories budgets" "trend trend";
+        grid-template-areas: "income budgets" "fixed budgets" "categories budgets" "trend trend";
     }
+    .area-fixed { grid-area: fixed; }
     .area-income { grid-area: income; }
     .area-budgets { grid-area: budgets; }
     .area-categories { grid-area: categories; }
@@ -912,3 +913,12 @@ select.input {
 /* Dépenses fixes pointées ce mois-ci (écran Budget) */
 .pointed-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 500; color: var(--positive); }
 .pointed-badge.is-waiting { color: var(--muted); }
+
+/* ---------- Graphiques : dépenses fixes + ajout rapide ---------- */
+.fixed-list { display: flex; flex-direction: column; }
+.fixed-list .row-text { gap: 2px; }
+.fixed-list + .quick-fixed { margin-top: 10px; }
+.quick-fixed summary { display: inline-flex; align-items: center; gap: 6px; list-style: none; cursor: pointer; }
+.quick-fixed summary::-webkit-details-marker { display: none; }
+.quick-fixed[open] summary { margin-bottom: 14px; }
+.quick-fixed-form { display: flex; flex-direction: column; gap: 14px; }

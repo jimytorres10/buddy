@@ -248,9 +248,25 @@ class BuddyFlowTest extends WebTestCase
         $this->assertCount(2, $crawler->filter('.donut-seg'));
         $this->assertCount(6, $crawler->filter('.trend-col'));
 
-        $this->client->request('GET', '/graphiques?mois=2020-01');
+        $this->assertSelectorTextContains('.fixed-list', 'Loyer');
+
+        $crawler = $this->client->request('GET', '/graphiques?mois=2020-01');
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextContains('.month-nav-label strong', 'Janvier 2020');
+
+        // Ajout rapide : sans libellé → erreur, le formulaire reste ouvert
+        $form = $crawler->filter('.quick-fixed-form')->form();
+        $this->client->submit($form, ['fixed_expense[amount]' => '50']);
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertSelectorExists('details.quick-fixed[open]');
+
+        // Commence au mois affiché, pendant 3 mois
+        $this->client->submit($form, ['fixed_expense[label]' => 'Rappel impôts', 'fixed_expense[amount]' => '150', 'fixed_expense[duration]' => '3']);
+        $this->assertResponseRedirects('/graphiques?mois=2020-01');
+        $fixed = static::getContainer()->get(FixedExpenseRepository::class)->findOneBy(['label' => 'Rappel impôts']);
+        $this->assertSame(['2020-01', '2020-03', 15000], [$fixed->getStartMonth()->format('Y-m'), $fixed->getEndMonth()->format('Y-m'), $fixed->getAmount()]);
+        $this->client->followRedirect();
+        $this->assertSelectorTextContains('.fixed-list', 'Rappel impôts');
     }
 
     public function testAdjustBudgetForOneMonth(): void
