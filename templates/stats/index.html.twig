@@ -73,7 +73,17 @@
     {# 2. Dépenses fixes du mois + ajout rapide #}
     <h2 class="section-title section-title-split">
         <span>Dépenses fixes</span>
-        {% if fixedExpenses is not empty %}<span title="Déjà prélevé / total du mois">{{ fixedDebited|money }} / {{ summary.fixed|money }}</span>{% endif %}
+        {% if fixedExpenses is not empty %}
+            <span class="fixed-head-right">
+                {% if fixedDebited > 0 %}
+                    <label class="fixed-hide-toggle">
+                        <input type="checkbox" data-controller="remember" data-remember-key-value="buddy-hide-debited" data-action="remember#save">
+                        Seulement à venir
+                    </label>
+                {% endif %}
+                <span title="Déjà prélevé / total du mois">{{ fixedDebited|money }} / {{ summary.fixed|money }}</span>
+            </span>
+        {% endif %}
     </h2>
     <section class="card card-pad chart-card">
         {% if fixedExpenses is empty %}
@@ -81,7 +91,7 @@
         {% else %}
             <div class="fixed-list">
                 {% for fixed in fixedExpenses %}
-                    <div class="row">
+                    <div class="row{{ pointed[fixed.id] is defined ? ' is-debited' }}">
                         {{ ui.pill(fixed.category ? fixed.category.icon : 'repeat', fixed.category ? fixed.category.color : 'teal') }}
                         <span class="row-text">
                             <span class="row-label">{{ fixed.label }}</span>
@@ -98,12 +108,13 @@
                     </div>
                 {% endfor %}
             </div>
+            <p class="fixed-all-done">{{ ui.icon('check', 15) }} Tout est déjà prélevé ce mois-ci.</p>
         {% endif %}
 
         {% set fixed_failed = fixedForm.vars.submitted and not fixedForm.vars.valid %}
         <details class="quick-fixed"{{ fixed_failed ? ' open' }}>
             <summary class="btn btn-soft chart-action">{{ ui.icon('plus', 16) }} Ajouter une dépense fixe dès {{ month|month_label|lower }}</summary>
-            {{ form_start(fixedForm, {attr: {novalidate: 'novalidate', class: 'quick-fixed-form'}}) }}
+            {{ form_start(fixedForm, {attr: {novalidate: 'novalidate', class: 'quick-fixed-form', 'data-controller': 'impact', 'data-impact-mode-value': 'fixed-add', 'data-impact-data-value': impact.data|json_encode}}) }}
                 <div class="grid-2">
                     {{ form_row(fixedForm.label) }}
                     {{ form_row(fixedForm.amount) }}
@@ -123,6 +134,7 @@
                 {{ form_errors(fixedForm.endMonth) }}
                 {% do fixedForm.endMonth.setRendered %}
                 <p class="hint">Sans durée, elle revient tous les mois.</p>
+                {% include 'stats/_impact.html.twig' %}
                 <button type="submit" class="btn btn-primary btn-block">Ajouter</button>
             {{ form_end(fixedForm) }}
         </details>

@@ -1,0 +1,31 @@
+{#
+    Aperçu de la répartition des revenus d'un mois, recalculé pendant la saisie (contrôleur Stimulus « impact »).
+    Le contrôleur est posé sur un parent qui contient aussi le formulaire. Variables : impact (StatsReport::impact).
+#}
+{% set split = impact.split %}
+<div class="impact" data-impact-target="panel">
+    <div class="chart-head">
+        <span class="chart-head-label">Impact sur {{ impact.month|month_label|lower }}</span>
+        <span class="chart-head-value is-positive">{{ split.income|money }}</span>
+    </div>
+    {% if split.income == 0 %}
+        <p class="hint">Ajoute tes revenus pour voir la répartition.</p>
+    {% else %}
+        <div class="stack-bar" aria-hidden="true">
+            {% for part in split.parts %}
+                <span class="stack-bar-seg seg-{{ part.key }}" data-impact-target="seg" data-key="{{ part.key }}" style="width: {{ part.percent }}%"></span>
+            {% endfor %}
+        </div>
+        <ul class="chart-legend">
+            {% for part in split.parts %}
+                <li data-impact-target="part" data-key="{{ part.key }}">
+                    <span class="legend-dot seg-{{ part.key }}"></span>
+                    <span class="legend-label">{{ part.label }}</span>
+                    <span class="impact-delta" data-role="delta" hidden></span>
+                    <span class="legend-value"><span data-role="value">{{ part.amount|money }}</span> <small data-role="percent">{{ (part.amount * 100 / split.income)|round }} %</small></span>
+                </li>
+            {% endfor %}
+        </ul>
+        <p class="chart-note is-negative" data-impact-target="note"{{ split.overflow == 0 ? ' hidden' }}>Dépassement de {{ split.overflow|money }} sur tes revenus.</p>
+    {% endif %}
+</div>

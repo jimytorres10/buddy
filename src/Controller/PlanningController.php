@@ -17,6 +17,7 @@ use App\Repository\IncomeRepository;
 use App\Security\OwnerVoter;
 use App\Service\MonthSummary;
 use App\Service\PlanningForms;
+use App\Service\StatsReport;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -104,6 +105,7 @@ class PlanningController extends AbstractController
         MonthlyBudgetRepository $monthlyBudgets,
         ExpenseRepository $expenses,
         EntityManagerInterface $em,
+        StatsReport $report,
     ): Response {
         $month = ($mois ? \DateTimeImmutable::createFromFormat('!Y-m', $mois) : null) ?: new \DateTimeImmutable('first day of this month midnight');
         $categoryList = $categories->findForUser($user);
@@ -148,11 +150,12 @@ class PlanningController extends AbstractController
             'usual' => $budgets->findForUserIndexedByCategory($user),
             'adjusted' => $adjustments,
             'spent' => $expenses->sumByCategoryForMonth($user, $month),
+            'impact' => $report->impact($user, $month),
         ]);
     }
 
     #[Route('/{section}', name: 'app_planning_edit', requirements: ['section' => 'revenus|depenses-fixes|budgets'])]
-    public function edit(string $section, Request $request, #[CurrentUser] User $user, PlanningForms $planning): Response
+    public function edit(string $section, Request $request, #[CurrentUser] User $user, PlanningForms $planning, StatsReport $report): Response
     {
         $result = $planning->handle($section, $user, $request);
 
@@ -167,6 +170,8 @@ class PlanningController extends AbstractController
             'title' => self::TITLES[$section],
             'form' => $result['form'],
             'categories' => $result['categories'],
+            // Aperçu de l'impact sur le mois en cours (pas pour les revenus)
+            'impact' => 'revenus' === $section ? null : $report->impact($user, new \DateTimeImmutable('first day of this month midnight')),
         ]);
     }
 

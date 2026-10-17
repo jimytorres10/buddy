@@ -79,6 +79,7 @@ class StatsController extends AbstractController
             'pointed' => $pointed,
             'fixedDebited' => $debited,
             'fixedForm' => $form->createView(),
+            'impact' => $this->report->impact($user, $month),
         ] + $this->report->build($user, $month), new Response(status: $status));
     }
 }

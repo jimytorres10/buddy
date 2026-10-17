@@ -30,7 +30,8 @@ class MonthSummary
      * @return array{
      *     income: int, fixed: int, spent: int, remaining: int, budgeted: int,
      *     budgets: list<array{category: \App\Entity\Category, budget: int, usual: ?int, adjusted: bool, spent: int, percent: int, over: bool}>,
-     *     unbudgeted: list<array{category: \App\Entity\Category, spent: int}>
+     *     unbudgeted: list<array{category: \App\Entity\Category, spent: int}>,
+     *     byCategory: array<int, array{spent: int, usual: ?int, override: ?int}>
      * }
      */
     public function compute(User $user, \DateTimeImmutable $month): array
@@ -46,12 +47,14 @@ class MonthSummary
 
         $budgetLines = [];
         $unbudgeted = [];
+        $byCategory = [];
         foreach ($this->categories->findForUser($user) as $category) {
             $spent = $spentByCategory[$category->getId()] ?? 0;
             $usual = isset($budgets[$category->getId()]) ? $budgets[$category->getId()]->getAmount() : null;
             $adjusted = isset($adjustments[$category->getId()]);
             // Un ajustement du mois remplace le budget habituel ; 0 = pas de budget ce mois-ci
             $amount = $adjusted ? $adjustments[$category->getId()]->getAmount() : $usual;
+            $byCategory[$category->getId()] = ['spent' => $spent, 'usual' => $usual, 'override' => $adjusted ? $amount : null];
 
             if ($amount) {
                 $budgetLines[] = [
@@ -78,6 +81,7 @@ class MonthSummary
             'budgeted' => array_sum(array_column($budgetLines, 'budget')),
             'budgets' => $budgetLines,
             'unbudgeted' => $unbudgeted,
+            'byCategory' => $byCategory,
         ];
     }
 }

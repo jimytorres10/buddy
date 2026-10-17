@@ -28,6 +28,27 @@ class StatsReport
     }
 
     /**
+     * Aperçu de l'impact d'un ajustement (budgets, dépenses fixes) sur la répartition d'un mois :
+     * la répartition actuelle, plus les données que le navigateur recalcule pendant la saisie.
+     */
+    public function impact(User $user, \DateTimeImmutable $month): array
+    {
+        $summary = $this->summary->compute($user, $month);
+
+        return [
+            'month' => $month,
+            'split' => $this->incomeSplit($summary),
+            'data' => [
+                'month' => $month->format('Y-m'),
+                'income' => $summary['income'],
+                'fixed' => $summary['fixed'],
+                'spent' => $summary['spent'],
+                'categories' => (object) $summary['byCategory'],
+            ],
+        ];
+    }
+
+    /**
      * Revenus découpés en fixes / dépensé / reste des budgets / épargne.
      * L'épargne est ce qui n'est ni dépensé ni réservé par un budget ; si les revenus
      * ne suffisent pas, le reste des budgets est rogné (shortfall) puis les sorties débordent (overflow).

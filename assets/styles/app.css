@@ -940,3 +940,20 @@ turbo-frame.expense-frame { display: block; }
 .expense-inline-form { display: flex; flex-direction: column; gap: 14px; }
 .expense-inline-form .input { background: var(--surface); }
 .expense-inline-form .expense-actions { justify-content: flex-end; }
+
+/* Graphiques : masquer les dépenses fixes déjà prélevées */
+.fixed-head-right { display: inline-flex; align-items: baseline; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+.fixed-hide-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); cursor: pointer; }
+.fixed-hide-toggle input { width: 16px; height: 16px; margin: 0; accent-color: var(--primary); }
+.area-fixed:has(.fixed-hide-toggle input:checked) .fixed-list .row.is-debited { display: none; }
+.fixed-all-done { display: none; padding: 14px 0; color: var(--muted); }
+.area-fixed:has(.fixed-hide-toggle input:checked) .fixed-list:not(:has(.row:not(.is-debited))) + .fixed-all-done { display: block; }
+
+/* ---------- Aperçu de l'impact d'un ajustement sur la répartition du mois ---------- */
+.impact { display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: var(--radius-sm); background: var(--surface); border: 1.5px dashed var(--border); transition: border-color .2s; }
+.impact.is-changed { border-color: var(--primary); }
+.card .impact, .quick-fixed-form .impact { background: var(--surface-2); }
+.impact .chart-head-value { font-size: 18px; }
+.impact-delta { font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.impact-delta.is-up { color: var(--positive); }
+.impact-delta.is-down { color: var(--negative); }

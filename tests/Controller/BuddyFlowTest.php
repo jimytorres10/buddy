@@ -307,6 +307,9 @@ class BuddyFlowTest extends WebTestCase
         $this->em->flush();
         $crawler = $this->client->request('GET', '/graphiques');
         $this->assertSame('690,00 € / 700,00 €', str_replace("\u{00A0}", ' ', $crawler->filter('.area-fixed .section-title span')->last()->text()));
+        // Case « Seulement à venir » : le loyer prélevé est marqué pour être masqué
+        $this->assertSelectorExists('.area-fixed .fixed-hide-toggle input[type=checkbox]');
+        $this->assertSelectorExists('.fixed-list .row.is-debited');
 
         $crawler = $this->client->request('GET', '/graphiques?mois=2020-01');
         $this->assertResponseIsSuccessful();
@@ -342,6 +345,10 @@ class BuddyFlowTest extends WebTestCase
         $gifts = $categories[8];
         $crawler = $this->client->request('GET', '/budget/mois/2026-12');
         $this->assertSelectorTextContains('.month-nav-label strong', 'Décembre 2026');
+        // Aperçu de l'impact : données du mois pour le recalcul pendant la saisie
+        $data = json_decode($crawler->filter('form[data-controller=impact]')->attr('data-impact-data-value'), true);
+        $this->assertSame(['2026-12', 40000], [$data['month'], $data['categories'][$food->getId()]['usual']]);
+        $this->assertSelectorTextContains('.impact', 'Impact sur décembre 2026');
         $this->client->submit($crawler->selectButton('Enregistrer')->form(), [
             'month_budgets[c'.$food->getId().']' => '550',
             'month_budgets[c'.$leisure->getId().']' => '0',

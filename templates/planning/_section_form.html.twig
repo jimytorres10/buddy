@@ -4,7 +4,8 @@
 #}
 {% import '_icons.html.twig' as ui %}
 
-{{ form_start(form, {attr: {novalidate: 'novalidate', class: 'stack'}}) }}
+{% set impact_attr = (impact ?? false) ? {'data-controller': 'impact', 'data-impact-mode-value': section == 'budgets' ? 'budgets' : 'fixed', 'data-impact-data-value': impact.data|json_encode} : {} %}
+{{ form_start(form, {attr: {novalidate: 'novalidate', class: 'stack'}|merge(impact_attr)}) }}
     {{ form_errors(form) }}
 
     {% if section == 'budgets' %}
@@ -74,6 +75,8 @@
             {% endif %}
         </p>
     {% endif %}
+
+    {% if impact ?? false %}{% include 'stats/_impact.html.twig' %}{% endif %}
 
     <div class="form-actions">
         {% if back_url ?? false %}

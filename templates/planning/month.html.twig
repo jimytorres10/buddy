@@ -25,7 +25,7 @@
 
     <p class="hint">Change un budget juste pour ce mois (cadeaux en décembre, vacances en août…). Laisse vide pour garder ton budget habituel, mets 0 pour ne pas avoir de budget ce mois-ci.</p>
 
-    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'stack'}}) }}
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'stack', 'data-controller': 'impact', 'data-impact-mode-value': 'month-budgets', 'data-impact-data-value': impact.data|json_encode}}) }}
         {{ form_errors(form) }}
         <div class="card">
             {% for category in categories %}
@@ -51,6 +51,8 @@
                 </div>
             {% endfor %}
         </div>
+
+        {% include 'stats/_impact.html.twig' %}
 
         <div class="form-actions">
             {% if adjusted is not empty %}
