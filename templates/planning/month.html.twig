@@ -1,0 +1,64 @@
+{% extends 'layout_app.html.twig' %}
+{% import '_icons.html.twig' as ui %}
+
+{% block title %}Budgets du mois · Buddy{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <a href="{{ path('app_planning') }}" class="round-btn round-btn-sm" aria-label="Retour">{{ ui.icon('chevron-left', 20) }}</a>
+        <h1 class="page-header-title">Budgets du mois</h1>
+        <span class="round-btn-placeholder"></span>
+    </header>
+
+    <div class="month-nav">
+        <a href="{{ path('app_budget_month', {mois: previous|date('Y-m')}) }}" class="round-btn round-btn-sm" aria-label="Mois précédent">{{ ui.icon('chevron-left', 20) }}</a>
+        <div class="month-nav-label">
+            <strong>{{ month|month_label }}</strong>
+            {% if isCurrentMonth %}
+                <span>Ce mois-ci</span>
+            {% else %}
+                <a href="{{ path('app_budget_month') }}">Revenir à ce mois-ci</a>
+            {% endif %}
+        </div>
+        <a href="{{ path('app_budget_month', {mois: next|date('Y-m')}) }}" class="round-btn round-btn-sm" aria-label="Mois suivant">{{ ui.icon('chevron-right', 20) }}</a>
+    </div>
+
+    <p class="hint">Change un budget juste pour ce mois (cadeaux en décembre, vacances en août…). Laisse vide pour garder ton budget habituel, mets 0 pour ne pas avoir de budget ce mois-ci.</p>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'stack'}}) }}
+        {{ form_errors(form) }}
+        <div class="card">
+            {% for category in categories %}
+                {% set field = form['c' ~ category.id] %}
+                {% set usualAmount = usual[category.id] is defined ? usual[category.id].amount : null %}
+                {% set isAdjusted = adjusted[category.id] is defined %}
+                <div class="budget-input-row{{ isAdjusted ? ' is-adjusted' }}">
+                    {{ ui.pill(category.icon, category.color) }}
+                    <label for="{{ field.vars.id }}" class="budget-input-label">
+                        <span class="budget-input-name">
+                            {{ category.name }}
+                            {% if isAdjusted %}<span class="badge-adjusted">Ajusté</span>{% endif %}
+                        </span>
+                        <span class="budget-input-sub">
+                            Habituel : {{ usualAmount ? usualAmount|money : 'aucun' }}
+                            {% if spent[category.id] is defined %} · Dépensé : {{ spent[category.id]|money }}{% endif %}
+                        </span>
+                    </label>
+                    <div class="budget-input-amount">
+                        {{ form_widget(field, {attr: {placeholder: usualAmount ? (usualAmount / 100)|number_format(2, ',', '') : '—'}}) }}
+                        {{ form_errors(field) }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-actions">
+            {% if adjusted is not empty %}
+                <button type="submit" name="reset" value="1" class="btn btn-ghost">{{ ui.icon('refresh', 18) }} Budgets habituels</button>
+            {% endif %}
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </div>
+    {{ form_end(form) }}
+
+    <p class="hint">Pour changer ton budget habituel (tous les mois) : <a href="{{ path('app_planning_edit', {section: 'budgets'}) }}">Mes budgets</a>.</p>
+{% endblock %}

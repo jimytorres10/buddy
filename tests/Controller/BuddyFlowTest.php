@@ -2,7 +2,10 @@
 
 namespace App\Tests\Controller;
 
+use App\Entity\Budget;
 use App\Entity\Expense;
+use App\Entity\FixedExpense;
+use App\Entity\Income;
 use App\Entity\User;
 use App\Repository\CategoryRepository;
 use App\Repository\ExpenseRepository;
@@ -24,7 +27,7 @@ class BuddyFlowTest extends WebTestCase
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
         $this->em->getConnection()->executeStatement('SET FOREIGN_KEY_CHECKS=0');
-        foreach (['expense', 'budget', 'fixed_expense', 'income', 'category', '`user`'] as $table) {
+        foreach (['expense', 'monthly_budget', 'budget', 'fixed_expense', 'income', 'category', '`user`'] as $table) {
             $this->em->getConnection()->executeStatement('TRUNCATE '.$table);
         }
         $this->em->getConnection()->executeStatement('SET FOREIGN_KEY_CHECKS=1');
@@ -213,6 +216,79 @@ class BuddyFlowTest extends WebTestCase
             [$thisMonth->format('Y-m'), $thisMonth->modify('+2 months')->format('Y-m')],
             [$items[2]->getStartMonth()->format('Y-m'), $items[2]->getEndMonth()->format('Y-m')],
         );
+    }
+
+    public function testStatsPage(): void
+    {
+        $user = $this->createUser('stats@example.com');
+        $categories = static::getContainer()->get(CategoryRepository::class)->findForUser($user);
+        [$food, $home] = [$categories[0], $categories[1]];
+        $this->em->persist((new Income())->setUser($user)->setLabel('Salaire')->setAmount(200000));
+        $this->em->persist((new FixedExpense())->setUser($user)->setLabel('Loyer')->setAmount(70000));
+        $this->em->persist((new Budget())->setUser($user)->setCategory($food)->setAmount(30000));
+        $this->em->persist((new Budget())->setUser($user)->setCategory($home)->setAmount(10000));
+        $this->em->persist((new Expense())->setUser($user)->setCategory($food)->setAmount(35000));
+        $this->em->persist((new Expense())->setUser($user)->setCategory($home)->setAmount(5000));
+        $this->em->flush();
+        $this->client->loginUser($user);
+
+        $crawler = $this->client->request('GET', '/graphiques');
+        $this->assertResponseIsSuccessful();
+        $text = str_replace("\u{00A0}", ' ', $crawler->filter('main')->text());
+
+        // Revenus 2000 : 700 fixes + 400 dépensés, 50 restant au budget logement, 850 d'épargne
+        $this->assertStringContainsString('2 000,00 €', $text);
+        $legend = str_replace("\u{00A0}", ' ', $crawler->filter('.chart-legend')->first()->text());
+        $this->assertStringContainsString('Reste des budgets 50,00 €', $legend);
+        $this->assertStringContainsString('Épargne 850,00 €', $legend);
+        // Budget alimentation dépassé
+        $this->assertStringContainsString('Dépassé de 50,00 €', $text);
+        // Donut : 2 catégories, évolution : 6 mois
+        $this->assertCount(2, $crawler->filter('.donut-seg'));
+        $this->assertCount(6, $crawler->filter('.trend-col'));
+
+        $this->client->request('GET', '/graphiques?mois=2020-01');
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('.month-nav-label strong', 'Janvier 2020');
+    }
+
+    public function testAdjustBudgetForOneMonth(): void
+    {
+        $user = $this->createUser('ajuste@example.com');
+        $categories = static::getContainer()->get(CategoryRepository::class)->findForUser($user);
+        [$food, $leisure] = [$categories[0], $categories[4]];
+        $this->em->persist((new Budget())->setUser($user)->setCategory($food)->setAmount(40000));
+        $this->em->persist((new Budget())->setUser($user)->setCategory($leisure)->setAmount(10000));
+        $this->em->flush();
+        $this->client->loginUser($user);
+        $summary = static::getContainer()->get(MonthSummary::class);
+
+        // Décembre : alimentation 550 €, loisirs supprimé (0), cadeaux sans budget habituel → 200 €
+        $gifts = $categories[8];
+        $crawler = $this->client->request('GET', '/budget/mois/2026-12');
+        $this->assertSelectorTextContains('.month-nav-label strong', 'Décembre 2026');
+        $this->client->submit($crawler->selectButton('Enregistrer')->form(), [
+            'month_budgets[c'.$food->getId().']' => '550',
+            'month_budgets[c'.$leisure->getId().']' => '0',
+            'month_budgets[c'.$gifts->getId().']' => '200',
+        ]);
+        $this->assertResponseRedirects('/budget/mois/2026-12');
+
+        $budgets = fn (string $date) => array_column(array_map(
+            fn ($l) => [$l['category']->getName(), $l['budget']],
+            $summary->compute($user, new \DateTimeImmutable($date))['budgets'],
+        ), 1, 0);
+        $this->assertSame([$food->getName() => 55000, $gifts->getName() => 20000], $budgets('2026-12-10'));
+        // Les autres mois gardent les budgets habituels
+        $this->assertSame([$food->getName() => 40000, $leisure->getName() => 10000], $budgets('2026-11-10'));
+
+        // Le badge « Ajusté » apparaît, puis retour aux budgets habituels
+        $crawler = $this->client->request('GET', '/graphiques?mois=2026-12');
+        $this->assertCount(2, $crawler->filter('.bvr .badge-adjusted'));
+        $crawler = $this->client->request('GET', '/budget/mois/2026-12');
+        $this->client->submit($crawler->selectButton('Budgets habituels')->form());
+        $this->assertResponseRedirects('/budget/mois/2026-12');
+        $this->assertSame([$food->getName() => 40000, $leisure->getName() => 10000], $budgets('2026-12-10'));
     }
 
     private function createUser(string $email): User

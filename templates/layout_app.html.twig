@@ -24,8 +24,8 @@
             <a href="{{ path('app_planning') }}" class="nav-item{{ route starts with 'app_planning' or route starts with 'app_category' ? ' is-active' }}">
                 {{ ui.icon('pie', 24) }}<span>Budget</span>
             </a>
-            <a href="{{ path('app_menu') }}" class="nav-item{{ route starts with 'app_menu' ? ' is-active' }}">
-                {{ ui.icon('menu', 24) }}<span>Menu</span>
+            <a href="{{ path('app_stats') }}" class="nav-item{{ route == 'app_stats' ? ' is-active' }}">
+                {{ ui.icon('chart', 24) }}<span>Graphiques</span>
             </a>
         </div>
     </nav>

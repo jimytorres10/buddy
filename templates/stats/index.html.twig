@@ -1,0 +1,166 @@
+{% extends 'layout_app.html.twig' %}
+{% import '_icons.html.twig' as ui %}
+
+{% block title %}Graphiques · Buddy{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <h1 class="greeting">Graphiques</h1>
+        <a href="{{ path('app_menu') }}" class="round-btn" aria-label="Paramètres">{{ ui.icon('settings', 24) }}</a>
+    </header>
+
+    <div class="month-nav">
+        <a href="{{ path('app_stats', {mois: previous|date('Y-m')}) }}" class="round-btn round-btn-sm" aria-label="Mois précédent">{{ ui.icon('chevron-left', 20) }}</a>
+        <div class="month-nav-label">
+            <strong>{{ month|month_label }}</strong>
+            {% if isCurrentMonth %}
+                <span>Ce mois-ci</span>
+            {% else %}
+                <a href="{{ path('app_stats') }}">Revenir à ce mois-ci</a>
+            {% endif %}
+        </div>
+        <a href="{{ path('app_stats', {mois: next|date('Y-m')}) }}" class="round-btn round-btn-sm" aria-label="Mois suivant">{{ ui.icon('chevron-right', 20) }}</a>
+    </div>
+
+    {# 1. Où partent les revenus #}
+    <h2 class="section-title">Mes revenus</h2>
+    <section class="card card-pad chart-card">
+        <div class="chart-head">
+            <span class="chart-head-label">Revenus du mois</span>
+            <span class="chart-head-value is-positive">{{ split.income|money }}</span>
+        </div>
+        {% if split.income == 0 and split.overflow == 0 %}
+            <p class="empty-inline">Aucun revenu ni dépense pour ce mois. <a href="{{ path('app_planning_edit', {section: 'revenus'}) }}">Définir mes revenus</a></p>
+        {% else %}
+            <div class="stack-bar-wrap">
+                <div class="stack-bar{{ split.overflow > 0 ? ' is-over' }}" role="img" aria-label="Répartition des revenus">
+                    {% for part in split.parts|filter(p => p.amount > 0) %}
+                        <span class="stack-bar-seg seg-{{ part.key }}" style="width: {{ part.percent }}%" title="{{ part.label }} : {{ part.amount|money }}"></span>
+                    {% endfor %}
+                </div>
+                {% if split.overflow > 0 %}
+                    {# Trait = niveau des revenus ; tout ce qui dépasse à droite est en déficit #}
+                    <span class="stack-bar-marker" style="left: {{ split.incomePercent }}%" title="Revenus : {{ split.income|money }}"></span>
+                {% endif %}
+            </div>
+            <ul class="chart-legend">
+                {% for part in split.parts %}
+                    <li>
+                        <span class="legend-dot seg-{{ part.key }}"></span>
+                        <span class="legend-label">{{ part.label }}</span>
+                        <span class="legend-value">{{ part.amount|money }}{% if split.income > 0 %} <small>{{ (part.amount * 100 / split.income)|round }} %</small>{% endif %}</span>
+                    </li>
+                {% endfor %}
+                {% if split.overflow > 0 %}
+                    <li class="is-negative">
+                        <span class="legend-dot seg-over"></span>
+                        <span class="legend-label">Dépassement</span>
+                        <span class="legend-value">{{ split.overflow|money }}</span>
+                    </li>
+                {% endif %}
+            </ul>
+            {% if split.shortfall > 0 and split.overflow == 0 %}
+                <p class="chart-note is-negative">Tes budgets restants dépassent ce qu'il te reste de {{ split.shortfall|money }} : pas d'épargne possible ce mois-ci.</p>
+            {% endif %}
+        {% endif %}
+    </section>
+
+    {# 2. Budgets vs réel #}
+    <h2 class="section-title section-title-split">
+        <span>Budgets vs réel</span>
+        {% if budgets.lines is not empty %}<span>{{ budgets.spent|money }} / {{ budgets.budgeted|money }}</span>{% endif %}
+    </h2>
+    <section class="card card-pad chart-card">
+        {% if budgets.lines is empty %}
+            <a href="{{ path('app_planning_edit', {section: 'budgets'}) }}" class="empty-inline">Aucun budget défini — ajouter</a>
+        {% else %}
+            <a href="{{ path('app_budget_month', {mois: month|date('Y-m')}) }}" class="btn btn-soft chart-action">{{ ui.icon('calendar', 16) }} Ajuster les budgets de {{ month|month_label|lower }}</a>
+            <ul class="chart-legend chart-legend-inline">
+                <li><span class="legend-dot seg-budget"></span>Budget</li>
+                <li><span class="legend-dot seg-spent"></span>Dépensé</li>
+                <li><span class="legend-dot seg-over"></span>Dépassé</li>
+            </ul>
+            <div class="bvr">
+                {% for line in budgets.lines %}
+                    <div class="bvr-row">
+                        <div class="bvr-top">
+                            <span class="bvr-name"><span class="chip-dot tone-{{ line.category.color }}"></span>{{ line.category.name }}{% if line.adjusted %} <span class="badge-adjusted">Ajusté</span>{% endif %}</span>
+                            <span class="bvr-amount{{ line.over ? ' is-negative' }}">{{ line.spent|money }} <small>/ {{ line.budget|money }}</small></span>
+                        </div>
+                        <div class="bvr-bars" role="img" aria-label="{{ line.category.name }} : {{ line.spent|money }} dépensés sur {{ line.budget|money }}">
+                            <span class="bvr-bar seg-budget" style="width: {{ line.budgetWidth }}%"></span>
+                            <span class="bvr-bar {{ line.over ? 'seg-over' : (line.percent >= 80 ? 'seg-warn' : 'seg-spent') }}" style="width: {{ line.spentWidth }}%"></span>
+                        </div>
+                        <span class="bvr-note">
+                            {% if line.over %}
+                                <span class="is-negative">Dépassé de {{ (line.spent - line.budget)|money }}</span>
+                            {% else %}
+                                Reste {{ (line.budget - line.spent)|money }} · {{ line.percent }} %
+                            {% endif %}
+                        </span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </section>
+
+    {# 3. Répartition des dépenses #}
+    <h2 class="section-title">Dépenses par catégorie</h2>
+    <section class="card card-pad chart-card">
+        {% if categories.items is empty %}
+            <p class="empty-inline">Aucune dépense ce mois-ci.</p>
+        {% else %}
+            <div class="donut-wrap">
+                <svg class="donut" viewBox="0 0 42 42" role="img" aria-label="Répartition des dépenses par catégorie">
+                    <circle class="donut-track" cx="21" cy="21" r="15.9155" />
+                    {% for item in categories.items %}
+                        <circle class="donut-seg tone-stroke-{{ item.category.color }}" cx="21" cy="21" r="15.9155"
+                                stroke-dasharray="{{ item.percent }} {{ 100 - item.percent }}"
+                                stroke-dashoffset="{{ 25 - item.offset }}">
+                            <title>{{ item.category.name }} : {{ item.spent|money }}</title>
+                        </circle>
+                    {% endfor %}
+                </svg>
+                <div class="donut-center">
+                    <strong>{{ categories.total|money }}</strong>
+                    <span>dépensés</span>
+                </div>
+            </div>
+            <ul class="chart-legend">
+                {% for item in categories.items %}
+                    <li>
+                        <span class="legend-dot tone-{{ item.category.color }}"></span>
+                        <span class="legend-label">{{ item.category.name }}</span>
+                        <span class="legend-value">{{ item.spent|money }} <small>{{ item.percent|round }} %</small></span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+
+    {# 4. Évolution #}
+    <h2 class="section-title">Sur 6 mois</h2>
+    <section class="card card-pad chart-card">
+        <ul class="chart-legend chart-legend-inline">
+            <li><span class="legend-dot seg-income"></span>Revenus</li>
+            <li><span class="legend-dot seg-fixed"></span>Fixes</li>
+            <li><span class="legend-dot seg-spent"></span>Dépenses</li>
+        </ul>
+        <div class="trend" role="img" aria-label="Revenus et dépenses sur 6 mois">
+            {% for m in trend.months %}
+                <a href="{{ path('app_stats', {mois: m.month|date('Y-m')}) }}" class="trend-col{{ m.current ? ' is-current' }}"
+                   title="{{ m.month|month_label }} — revenus {{ m.income|money }}, fixes {{ m.fixed|money }}, dépenses {{ m.spent|money }}">
+                    <div class="trend-bars">
+                        <span class="trend-bar seg-income" style="height: {{ m.incomeHeight }}%"></span>
+                        <span class="trend-bar trend-bar-stack" style="height: {{ m.fixedHeight + m.spentHeight }}%">
+                            <span class="seg-spent" style="flex: {{ m.spent }}"></span>
+                            <span class="seg-fixed" style="flex: {{ m.fixed }}"></span>
+                        </span>
+                    </div>
+                    <span class="trend-label">{{ m.month|month_short }}</span>
+                </a>
+            {% endfor %}
+        </div>
+        <p class="hint">Touche un mois pour afficher son détail.</p>
+    </section>
+{% endblock %}

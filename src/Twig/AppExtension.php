@@ -11,6 +11,7 @@ use Twig\TwigFilter;
 class AppExtension extends AbstractExtension
 {
     private const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+    private const MONTHS_SHORT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
     private const DAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 
     public function getFilters(): array
@@ -18,6 +19,7 @@ class AppExtension extends AbstractExtension
         return [
             new TwigFilter('money', $this->money(...)),
             new TwigFilter('month_label', $this->monthLabel(...)),
+            new TwigFilter('month_short', fn (\DateTimeInterface $date) => self::MONTHS_SHORT[(int) $date->format('n') - 1]),
             new TwigFilter('day_label', $this->dayLabel(...)),
             new TwigFilter('short_date', $this->shortDate(...)),
         ];

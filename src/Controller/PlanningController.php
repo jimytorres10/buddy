@@ -3,9 +3,13 @@
 namespace App\Controller;
 
 use App\Entity\Category;
+use App\Entity\MonthlyBudget;
 use App\Entity\User;
 use App\Form\CategoryType;
+use App\Form\MonthBudgetsType;
+use App\Repository\BudgetRepository;
 use App\Repository\CategoryRepository;
+use App\Repository\MonthlyBudgetRepository;
 use App\Repository\ExpenseRepository;
 use App\Repository\FixedExpenseRepository;
 use App\Repository\IncomeRepository;
@@ -81,6 +85,63 @@ class PlanningController extends AbstractController
         }
 
         return $this->redirectToRoute('app_category_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/mois/{mois?}', name: 'app_budget_month', requirements: ['mois' => '\d{4}-\d{2}'])]
+    public function month(
+        ?string $mois,
+        Request $request,
+        #[CurrentUser] User $user,
+        CategoryRepository $categories,
+        BudgetRepository $budgets,
+        MonthlyBudgetRepository $monthlyBudgets,
+        ExpenseRepository $expenses,
+        EntityManagerInterface $em,
+    ): Response {
+        $month = ($mois ? \DateTimeImmutable::createFromFormat('!Y-m', $mois) : null) ?: new \DateTimeImmutable('first day of this month midnight');
+        $categoryList = $categories->findForUser($user);
+        $adjustments = $monthlyBudgets->findForMonthIndexedByCategory($user, $month);
+
+        $data = [];
+        foreach ($categoryList as $category) {
+            $data['c'.$category->getId()] = isset($adjustments[$category->getId()]) ? $adjustments[$category->getId()]->getAmount() : null;
+        }
+        $form = $this->createForm(MonthBudgetsType::class, $data, ['categories' => $categoryList]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $reset = $request->request->has('reset');
+            foreach ($categoryList as $category) {
+                $amount = $reset ? null : $form->get('c'.$category->getId())->getData();
+                $adjustment = $adjustments[$category->getId()] ?? null;
+
+                if (null === $amount) {
+                    if ($adjustment) {
+                        $em->remove($adjustment);
+                    }
+                    continue;
+                }
+
+                $adjustment ??= (new MonthlyBudget())->setUser($user)->setCategory($category)->setMonth($month);
+                $em->persist($adjustment->setAmount($amount));
+            }
+            $em->flush();
+            $this->addFlash('success', $reset ? 'Budgets habituels rétablis pour ce mois.' : 'Budgets du mois enregistrés.');
+
+            return $this->redirectToRoute('app_budget_month', ['mois' => $month->format('Y-m')]);
+        }
+
+        return $this->render('planning/month.html.twig', [
+            'form' => $form,
+            'month' => $month,
+            'previous' => $month->modify('-1 month'),
+            'next' => $month->modify('+1 month'),
+            'isCurrentMonth' => $month->format('Y-m') === date('Y-m'),
+            'categories' => $categoryList,
+            'usual' => $budgets->findForUserIndexedByCategory($user),
+            'adjusted' => $adjustments,
+            'spent' => $expenses->sumByCategoryForMonth($user, $month),
+        ]);
     }
 
     #[Route('/{section}', name: 'app_planning_edit', requirements: ['section' => 'revenus|depenses-fixes|budgets'])]

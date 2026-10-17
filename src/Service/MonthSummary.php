@@ -8,6 +8,7 @@ use App\Repository\CategoryRepository;
 use App\Repository\ExpenseRepository;
 use App\Repository\FixedExpenseRepository;
 use App\Repository\IncomeRepository;
+use App\Repository\MonthlyBudgetRepository;
 
 /**
  * Calcule la synthèse d'un mois : revenus, charges fixes, dépenses et budgets.
@@ -21,13 +22,14 @@ class MonthSummary
         private ExpenseRepository $expenses,
         private BudgetRepository $budgets,
         private CategoryRepository $categories,
+        private MonthlyBudgetRepository $monthlyBudgets,
     ) {
     }
 
     /**
      * @return array{
      *     income: int, fixed: int, spent: int, remaining: int, budgeted: int,
-     *     budgets: list<array{category: \App\Entity\Category, budget: int, spent: int, percent: int, over: bool}>,
+     *     budgets: list<array{category: \App\Entity\Category, budget: int, usual: ?int, adjusted: bool, spent: int, percent: int, over: bool}>,
      *     unbudgeted: list<array{category: \App\Entity\Category, spent: int}>
      * }
      */
@@ -40,20 +42,25 @@ class MonthSummary
         ));
         $spentByCategory = $this->expenses->sumByCategoryForMonth($user, $month);
         $budgets = $this->budgets->findForUserIndexedByCategory($user);
+        $adjustments = $this->monthlyBudgets->findForMonthIndexedByCategory($user, $month);
 
         $budgetLines = [];
         $unbudgeted = [];
         foreach ($this->categories->findForUser($user) as $category) {
             $spent = $spentByCategory[$category->getId()] ?? 0;
-            $budget = $budgets[$category->getId()] ?? null;
+            $usual = isset($budgets[$category->getId()]) ? $budgets[$category->getId()]->getAmount() : null;
+            $adjusted = isset($adjustments[$category->getId()]);
+            // Un ajustement du mois remplace le budget habituel ; 0 = pas de budget ce mois-ci
+            $amount = $adjusted ? $adjustments[$category->getId()]->getAmount() : $usual;
 
-            if ($budget) {
-                $amount = $budget->getAmount();
+            if ($amount) {
                 $budgetLines[] = [
                     'category' => $category,
                     'budget' => $amount,
+                    'usual' => $usual,
+                    'adjusted' => $adjusted,
                     'spent' => $spent,
-                    'percent' => $amount > 0 ? (int) min(100, round($spent * 100 / $amount)) : 100,
+                    'percent' => (int) min(100, round($spent * 100 / $amount)),
                     'over' => $spent > $amount,
                 ];
             } elseif ($spent > 0) {

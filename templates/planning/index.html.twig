@@ -86,7 +86,7 @@
                 {{ ui.pill(line.category.icon, line.category.color) }}
                 <div class="budget-line-main">
                     <div class="budget-line-top">
-                        <span class="budget-line-name">{{ line.category.name }}</span>
+                        <span class="budget-line-name">{{ line.category.name }}{% if line.adjusted %} <span class="badge-adjusted">Ajusté</span>{% endif %}</span>
                         <span class="budget-line-amount{{ line.over ? ' is-negative' }}">{{ line.spent|money }} <small>/ {{ line.budget|money }}</small></span>
                     </div>
                     <div class="progress{{ line.over ? ' is-over' : (line.percent >= 80 ? ' is-warn') }}"><span style="width: {{ line.percent }}%"></span></div>
@@ -99,6 +99,7 @@
             <div class="row row-total"><span class="row-label">Total budgété</span><span class="row-amount">{{ summary.budgeted|money }}</span></div>
         {% endif %}
     </div>
+    <a href="{{ path('app_budget_month') }}" class="btn btn-soft btn-block">{{ ui.icon('calendar', 18) }} Ajuster les budgets par mois</a>
     <div class="section-actions">
         <a href="{{ path('app_planning_edit', {section: 'budgets'}) }}" class="btn btn-soft">{{ ui.icon('plus', 18) }} Créer une catégorie</a>
         <a href="{{ path('app_category_index') }}" class="btn btn-ghost">{{ ui.icon('tag', 18) }} Mes catégories</a>

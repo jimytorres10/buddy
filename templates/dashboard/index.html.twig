@@ -69,7 +69,7 @@
                     {{ ui.pill(line.category.icon, line.category.color) }}
                     <div class="budget-line-main">
                         <div class="budget-line-top">
-                            <span class="budget-line-name">{{ line.category.name }}</span>
+                            <span class="budget-line-name">{{ line.category.name }}{% if line.adjusted %} <span class="badge-adjusted">Ajusté</span>{% endif %}</span>
                             <span class="budget-line-amount{{ line.over ? ' is-negative' }}">{{ line.spent|money }} <small>/ {{ line.budget|money }}</small></span>
                         </div>
                         <div class="progress{{ line.over ? ' is-over' : (line.percent >= 80 ? ' is-warn') }}" role="progressbar" aria-valuenow="{{ line.percent }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ line.category.name }}">
