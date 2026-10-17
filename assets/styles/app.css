@@ -731,3 +731,86 @@ select.input {
 .budget-input-row.is-adjusted .input { border-color: var(--primary); }
 .chart-action { align-self: flex-start; min-height: 40px; padding: 8px 14px; font-size: 14px; }
 .btn-block + .section-actions { margin-top: 10px; }
+
+/* ==========================================================================
+   Version ordinateur (≥ 1024 px) : barre latérale + pages en colonnes.
+   Sur mobile, les conteneurs .desk-* sont transparents (display: contents).
+   ========================================================================== */
+
+.desktop-only { display: none !important; }
+.desk-grid, .desk-col, .desk-block { display: contents; }
+
+@media (min-width: 1024px) {
+    :root { --side-w: 248px; }
+
+    .desktop-only { display: revert !important; }
+
+    /* Barre latérale */
+    .bottom-nav {
+        top: 0; right: auto; width: var(--side-w);
+        border-top: 0; border-right: 1px solid var(--border);
+        padding: 0;
+    }
+    .bottom-nav-inner {
+        height: 100%; max-width: none; margin: 0;
+        display: flex; flex-direction: column; align-items: stretch; gap: 4px;
+        padding: 24px 16px;
+    }
+    .nav-brand { display: flex !important; align-items: center; gap: 12px; padding: 4px 10px 22px; color: var(--text); }
+    .nav-brand:hover { color: var(--text); }
+    .nav-brand .brand-logo { width: 40px; height: 40px; border-radius: 12px; font-size: 22px; }
+    .nav-brand-name { font-size: 22px; font-weight: 700; }
+    .nav-item {
+        flex-direction: row; gap: 14px; padding: 11px 14px; border-radius: 14px;
+        font-size: 16px;
+    }
+    .nav-item:hover { background: var(--surface-2); }
+    .nav-item.is-active { background: var(--primary-soft); }
+    .nav-add { order: -1; padding: 0 0 14px; }
+    .nav-add:hover, .nav-add.is-active { background: none; }
+    .nav-add-btn {
+        width: 100%; height: 48px; margin: 0; border-radius: 14px; gap: 10px;
+        font-weight: 600; font-size: 15.5px;
+    }
+    .nav-add-btn .icon { width: 22px; height: 22px; }
+    .nav-add:hover .nav-add-btn { transform: none; background: var(--primary-hover); }
+    .nav-brand { order: -2; }
+    .nav-menu { margin-top: auto; display: flex !important; }
+
+    /* Zone de contenu */
+    body.with-nav { padding-left: var(--side-w); }
+    body.with-nav .page { padding: 36px 40px 56px; max-width: 680px; }
+    body.with-nav .page.page-medium { max-width: 860px; }
+    body.with-nav .page.page-wide { max-width: 1180px; }
+    .page-header { margin-bottom: 0; }
+
+    /* Colonnes */
+    .desk-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px 28px; align-items: start; }
+    .desk-col, .desk-block { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    .desk-grid-stats {
+        grid-template-areas: "income budgets" "categories budgets" "trend trend";
+    }
+    .area-income { grid-area: income; }
+    .area-budgets { grid-area: budgets; }
+    .area-categories { grid-area: categories; }
+    .area-trend { grid-area: trend; }
+    .trend-bars { height: 200px; }
+    .trend-bar { width: 22px; }
+
+    /* Les éléments tactiles n'ont plus besoin d'être aussi gros */
+    .shortcut { min-height: 150px; }
+
+    /* Confirmation : fenêtre centrée au lieu d'une feuille en bas */
+    .sheet { margin: auto; max-width: 440px; }
+    .sheet-inner { border-radius: 24px; padding: 26px; }
+
+    .flash { max-width: 680px; }
+
+    /* Filtres : sur plusieurs lignes plutôt qu'en défilement horizontal */
+    .chips-scroll { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
+}
+
+@media (min-width: 1440px) {
+    :root { --side-w: 272px; }
+    body.with-nav .page.page-wide { max-width: 1280px; }
+}

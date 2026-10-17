@@ -2,6 +2,7 @@
 {% import '_icons.html.twig' as ui %}
 
 {% block title %}Graphiques · Buddy{% endblock %}
+{% block page_class %}page-wide{% endblock %}
 
 {% block content %}
     <header class="page-header">
@@ -22,6 +23,8 @@
         <a href="{{ path('app_stats', {mois: next|date('Y-m')}) }}" class="round-btn round-btn-sm" aria-label="Mois suivant">{{ ui.icon('chevron-right', 20) }}</a>
     </div>
 
+    <div class="desk-grid desk-grid-stats">
+    <div class="desk-block area-income">
     {# 1. Où partent les revenus #}
     <h2 class="section-title">Mes revenus</h2>
     <section class="card card-pad chart-card">
@@ -65,6 +68,8 @@
         {% endif %}
     </section>
 
+    </div>
+    <div class="desk-block area-budgets">
     {# 2. Budgets vs réel #}
     <h2 class="section-title section-title-split">
         <span>Budgets vs réel</span>
@@ -104,6 +109,8 @@
         {% endif %}
     </section>
 
+    </div>
+    <div class="desk-block area-categories">
     {# 3. Répartition des dépenses #}
     <h2 class="section-title">Dépenses par catégorie</h2>
     <section class="card card-pad chart-card">
@@ -138,6 +145,8 @@
         {% endif %}
     </section>
 
+    </div>
+    <div class="desk-block area-trend">
     {# 4. Évolution #}
     <h2 class="section-title">Sur 6 mois</h2>
     <section class="card card-pad chart-card">
@@ -163,4 +172,6 @@
         </div>
         <p class="hint">Touche un mois pour afficher son détail.</p>
     </section>
+    </div>
+    </div>
 {% endblock %}

@@ -2,6 +2,7 @@
 {% import '_icons.html.twig' as ui %}
 
 {% block title %}Dépenses · Buddy{% endblock %}
+{% block page_class %}page-medium{% endblock %}
 
 {% set filter = currentCategory ? {categorie: currentCategory.id} : {} %}
 

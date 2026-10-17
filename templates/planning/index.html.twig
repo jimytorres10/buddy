@@ -2,6 +2,7 @@
 {% import '_icons.html.twig' as ui %}
 
 {% block title %}Budget · Buddy{% endblock %}
+{% block page_class %}page-wide{% endblock %}
 
 {% block content %}
     <header class="page-header">
@@ -20,6 +21,8 @@
         </div>
     </section>
 
+    <div class="desk-grid">
+    <div class="desk-col">
     <h2 class="section-title section-title-split">
         <span>Revenus mensuels</span>
         <a href="{{ path('app_planning_edit', {section: 'revenus'}) }}" class="section-link">Modifier</a>
@@ -76,6 +79,8 @@
         {% endif %}
     </div>
 
+    </div>
+    <div class="desk-col">
     <h2 class="section-title section-title-split">
         <span>Budgets par catégorie</span>
         <a href="{{ path('app_planning_edit', {section: 'budgets'}) }}" class="section-link">Modifier</a>
@@ -103,5 +108,7 @@
     <div class="section-actions">
         <a href="{{ path('app_planning_edit', {section: 'budgets'}) }}" class="btn btn-soft">{{ ui.icon('plus', 18) }} Créer une catégorie</a>
         <a href="{{ path('app_category_index') }}" class="btn btn-ghost">{{ ui.icon('tag', 18) }} Mes catégories</a>
+    </div>
+    </div>
     </div>
 {% endblock %}
