@@ -631,3 +631,26 @@ select.input {
 .pill-link:hover { transform: scale(1.06); }
 .section-actions { display: flex; gap: 10px; }
 .section-actions .btn { flex: 1; min-height: 46px; font-size: 15px; }
+
+/* ---------- Période des dépenses fixes ---------- */
+
+.item-period { grid-column: 1 / -1; }
+.item-period summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; list-style: none; color: var(--primary); font-size: 14px; font-weight: 500; padding: 2px 0; }
+.item-period summary::-webkit-details-marker { display: none; }
+.item-period[open] summary { margin-bottom: 8px; }
+.item-period-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.item-period-fields .field-label { font-size: 13px; color: var(--muted); }
+.item-period-hint { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
+.period-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--muted); }
+.row.is-inactive { opacity: .55; }
+.row.is-inactive .row-amount { text-decoration: line-through; }
+.period-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 10px; border-radius: 12px; background: var(--surface-2); }
+.period-switch-btn { border: 0; background: none; font: inherit; font-size: 13.5px; font-weight: 500; color: var(--muted); padding: 7px 6px; border-radius: 9px; cursor: pointer; transition: background-color .15s, color .15s; }
+.period-switch-btn[aria-pressed="true"] { background: var(--surface); color: var(--primary); font-weight: 600; box-shadow: var(--shadow); }
+:root[data-theme="dark"] .period-switch-btn[aria-pressed="true"] { background: var(--border); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .period-switch-btn[aria-pressed="true"] { background: var(--border); } }
+.period-switch-btn:focus-visible { outline: 2px solid var(--primary); }
+.input-suffixed { position: relative; }
+.input-suffixed .input { padding-right: 52px; }
+.input-suffix { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.item-field[hidden] { display: none; }

@@ -14,7 +14,7 @@
         <div class="card-head">
             <div>
                 <h2 class="card-title">Reste à vivre</h2>
-                <p class="card-sub">Chaque mois, après les dépenses fixes</p>
+                <p class="card-sub">Ce mois-ci, après les dépenses fixes</p>
             </div>
             <span class="amount-xl {{ available >= 0 ? 'is-positive' : 'is-negative' }}">{{ available|money }}</span>
         </div>
@@ -44,12 +44,27 @@
         <a href="{{ path('app_planning_edit', {section: 'depenses-fixes'}) }}" class="section-link">Modifier</a>
     </h2>
     <div class="card card-body">
+        {% set today = date() %}
         {% for fixed in fixedExpenses %}
-            <div class="row">
+            {% set status = fixed.statusIn(today) %}
+            <div class="row{{ status != 'active' ? ' is-inactive' }}">
                 {{ ui.pill(fixed.category ? fixed.category.icon : 'repeat', fixed.category ? fixed.category.color : 'teal') }}
                 <span class="row-text">
                     <span class="row-label">{{ fixed.label }}</span>
                     {% if fixed.category %}<span class="row-sub">{{ fixed.category.name }}</span>{% endif %}
+                    {% if fixed.hasPeriod %}
+                        <span class="period-badge">
+                            {{ ui.icon('calendar', 13) }}
+                            {% if fixed.startMonth and fixed.endMonth %}
+                                {{ fixed.startMonth|month_label }} → {{ fixed.endMonth|month_label }}
+                            {% elseif fixed.startMonth %}
+                                À partir de {{ fixed.startMonth|month_label|lower }}
+                            {% else %}
+                                Jusqu'à {{ fixed.endMonth|month_label|lower }}
+                            {% endif %}
+                            {{ status == 'past' ? '· terminée' : (status == 'upcoming' ? '· à venir') }}
+                        </span>
+                    {% endif %}
                 </span>
                 <span class="row-amount">{{ fixed.amount|money('-') }}</span>
             </div>
@@ -57,7 +72,7 @@
             <a href="{{ path('app_planning_edit', {section: 'depenses-fixes'}) }}" class="empty-inline">Aucune dépense fixe — ajouter</a>
         {% endfor %}
         {% if fixedExpenses|length > 1 %}
-            <div class="row row-total"><span class="row-label">Total</span><span class="row-amount">{{ summary.fixed|money('-') }}</span></div>
+            <div class="row row-total"><span class="row-label">Total ce mois-ci</span><span class="row-amount">{{ summary.fixed|money('-') }}</span></div>
         {% endif %}
     </div>
 

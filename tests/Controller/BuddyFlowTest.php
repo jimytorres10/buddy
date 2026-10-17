@@ -6,8 +6,10 @@ use App\Entity\Expense;
 use App\Entity\User;
 use App\Repository\CategoryRepository;
 use App\Repository\ExpenseRepository;
+use App\Repository\FixedExpenseRepository;
 use App\Repository\UserRepository;
 use App\Service\CategoryDefaults;
+use App\Service\MonthSummary;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -162,6 +164,55 @@ class BuddyFlowTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/');
         $this->assertStringContainsString('Animaux', $crawler->filter('.budget-line')->text());
+    }
+
+    public function testFixedExpenseLimitedToPeriod(): void
+    {
+        $user = $this->createUser('periode@example.com');
+        $this->client->loginUser($user);
+
+        $crawler = $this->client->request('GET', '/budget/depenses-fixes');
+        $values = $crawler->selectButton('Enregistrer')->form()->getPhpValues();
+        $values['recurring_items']['items'] = [
+            ['label' => 'Loyer', 'amount' => '800', 'category' => '', 'startMonth' => '', 'endMonth' => ''],
+            ['label' => 'Rappel impôts', 'amount' => '150', 'category' => '', 'startMonth' => '2026-12', 'endMonth' => '2026-09'],
+        ];
+
+        // Fin avant le début : refusé
+        $this->client->request('POST', '/budget/depenses-fixes', $values);
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertSelectorTextContains('.field-errors', 'Le mois de fin doit être après le mois de début.');
+
+        // Septembre → décembre 2026
+        $values['recurring_items']['items'][1]['startMonth'] = '2026-09';
+        $values['recurring_items']['items'][1]['endMonth'] = '2026-12';
+        $this->client->request('POST', '/budget/depenses-fixes', $values);
+        $this->assertResponseRedirects('/budget');
+
+        $summary = static::getContainer()->get(MonthSummary::class);
+        $this->assertSame(80000, $summary->compute($user, new \DateTimeImmutable('2026-08-15'))['fixed']);
+        $this->assertSame(95000, $summary->compute($user, new \DateTimeImmutable('2026-09-01'))['fixed']);
+        $this->assertSame(95000, $summary->compute($user, new \DateTimeImmutable('2026-12-31'))['fixed']);
+        $this->assertSame(80000, $summary->compute($user, new \DateTimeImmutable('2027-01-01'))['fixed']);
+
+        // La période est réaffichée à la modification
+        $crawler = $this->client->request('GET', '/budget/depenses-fixes');
+        $this->assertSame('2026-09', $crawler->filter('input[name="recurring_items[items][1][startMonth]"]')->attr('value'));
+
+        // « Pendant 4 mois » : à partir du début indiqué, ou de ce mois-ci par défaut
+        $values['recurring_items']['items'][1] = ['label' => 'Rappel impôts', 'amount' => '150', 'category' => '', 'startMonth' => '2026-10', 'endMonth' => '', 'duration' => '4'];
+        $values['recurring_items']['items'][2] = ['label' => 'Salle de sport', 'amount' => '30', 'category' => '', 'startMonth' => '', 'endMonth' => '', 'duration' => '3'];
+        $this->client->request('POST', '/budget/depenses-fixes', $values);
+        $this->assertResponseRedirects('/budget');
+
+        $this->em->clear();
+        $items = static::getContainer()->get(FixedExpenseRepository::class)->findForUser($user);
+        $this->assertSame(['2026-10', '2027-01'], [$items[1]->getStartMonth()->format('Y-m'), $items[1]->getEndMonth()->format('Y-m')]);
+        $thisMonth = new \DateTimeImmutable('first day of this month');
+        $this->assertSame(
+            [$thisMonth->format('Y-m'), $thisMonth->modify('+2 months')->format('Y-m')],
+            [$items[2]->getStartMonth()->format('Y-m'), $items[2]->getEndMonth()->format('Y-m')],
+        );
     }
 
     private function createUser(string $email): User
