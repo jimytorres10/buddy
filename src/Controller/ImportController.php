@@ -104,6 +104,9 @@ class ImportController extends AbstractController
         // Le formulaire « dépense fixe » a son propre champ (fixed_category) pour ne pas se mélanger.
         $decision = $payload->getString('decision') ?: ($int('category') ? 'expense' : '');
         $categoryId = 'fixed' === $decision ? $int('fixed_category') : $int('category');
+        if ('fixed' === $decision && '' !== trim($payload->getString('fixed_label'))) {
+            $label = mb_substr(trim($payload->getString('fixed_label')), 0, 80);
+        }
         $category = $categoryId ? $categories->findOneBy(['id' => $categoryId, 'user' => $user]) : null;
 
         match ($decision) {

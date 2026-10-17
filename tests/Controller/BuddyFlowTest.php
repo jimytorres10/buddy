@@ -340,7 +340,7 @@ class BuddyFlowTest extends WebTestCase
         $this->client->submit($crawler->selectButton('Enregistrer comme dépense fixe')->form([
             'fixed_category' => (string) $byName['Abonnements']->getId(),
             'months' => '12',
-            'label' => 'Netflix',
+            'fixed_label' => 'Netflix',
         ]));
 
         // Carrefour : on choisit Alimentation (déjà suggéré par mot-clé)

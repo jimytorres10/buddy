@@ -77,7 +77,7 @@ class TransactionImporter
         $start = $t->getDate()->modify('first day of this month midnight');
         $fixed = (new FixedExpense())
             ->setUser($t->getUser())
-            ->setLabel($label)
+            ->setLabel(mb_substr($label, 0, 80))
             ->setAmount(abs($t->getAmount()))
             ->setCategory($category)
             ->setStartMonth($start)
@@ -89,7 +89,7 @@ class TransactionImporter
 
     public function toIncome(ImportedTransaction $t, string $label): void
     {
-        $income = (new Income())->setUser($t->getUser())->setLabel($label)->setAmount($t->getAmount());
+        $income = (new Income())->setUser($t->getUser())->setLabel(mb_substr($label, 0, 80))->setAmount($t->getAmount());
         $this->em->persist($income);
         $t->setLabel($label)->classify(ImportedTransaction::INCOME, income: $income);
         $this->em->flush();

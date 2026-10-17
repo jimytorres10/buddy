@@ -889,3 +889,6 @@ select.input {
 .import-banner:hover { color: var(--text); }
 .import-banner .tile-label { font-size: 16px; }
 .header-actions { display: flex; gap: 10px; }
+/* Les champs restent éditables malgré user-select: none sur la carte (sinon iOS bloque la saisie) */
+.triage-card input, .triage-card select { user-select: text; -webkit-user-select: text; }
+.triage-fixed-name { grid-column: 1 / -1; }

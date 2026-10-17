@@ -72,6 +72,10 @@
                     <details class="triage-fixed" data-swipe-target="fixed">
                         <summary>{{ ui.icon('repeat', 16) }} C'est une dépense fixe (abonnement, loyer, échéance…)</summary>
                         <div class="triage-fixed-fields">
+                            <div class="item-field triage-fixed-name">
+                                <label class="field-label" for="fixed-label">Nom de la dépense fixe</label>
+                                <input id="fixed-label" name="fixed_label" class="input" value="{{ t.label }}" maxlength="80" autocomplete="off" placeholder="Loyer, Netflix, Crédit auto…">
+                            </div>
                             <div class="item-field">
                                 <label class="field-label" for="fixed-category">Catégorie</label>
                                 <select id="fixed-category" name="fixed_category" class="input">
