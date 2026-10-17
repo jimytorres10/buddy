@@ -1,0 +1,51 @@
+{% extends 'layout_app.html.twig' %}
+{% import '_icons.html.twig' as ui %}
+
+{% block title %}Importer · Buddy{% endblock %}
+
+{% set pending = counts.pending ?? 0 %}
+{% set classified = (counts|reduce((carry, n) => carry + n, 0)) - pending %}
+
+{% block content %}
+    <header class="page-header">
+        <a href="{{ path('app_expense_index') }}" class="round-btn round-btn-sm" aria-label="Retour">{{ ui.icon('chevron-left', 20) }}</a>
+        <h1 class="page-header-title">Importer mes opérations</h1>
+        <span class="round-btn-placeholder"></span>
+    </header>
+
+    {% if pending > 0 %}
+        <a href="{{ path('app_import_triage') }}" class="card card-tile import-resume">
+            {{ ui.pill('list', 'orange') }}
+            <span class="tile-label">
+                <strong>{{ pending }} opération{{ pending > 1 ? 's' }} à trier</strong>
+                <span class="tile-sub">Reprendre le tri là où tu t'es arrêté</span>
+            </span>
+            {{ ui.icon('chevron-right', 20) }}
+        </a>
+    {% endif %}
+
+    <section class="card card-pad stack">
+        <div>
+            <h2 class="card-title">1. Exporte tes opérations</h2>
+            <p class="card-sub">Depuis l'espace en ligne du Crédit Agricole (ou de ta banque)</p>
+        </div>
+        <ol class="steps">
+            <li>Ouvre ton compte courant dans l'espace en ligne.</li>
+            <li>Cherche <strong>« Télécharger »</strong> ou <strong>« Exporter les opérations »</strong> et choisis la période.</li>
+            <li>Choisis le format <strong>OFX</strong> (le plus fiable) ou, à défaut, <strong>CSV / Excel en .csv</strong>.</li>
+        </ol>
+        <p class="hint">Tu peux importer plusieurs fois des périodes qui se chevauchent : les opérations déjà importées sont ignorées.</p>
+    </section>
+
+    <section class="card card-pad">
+        <h2 class="card-title">2. Envoie le fichier</h2>
+        {{ form_start(form, {attr: {class: 'stack import-form', novalidate: 'novalidate', 'data-turbo': 'false'}}) }}
+            {{ form_row(form.file, {attr: {accept: '.ofx,.qfx,.csv,.txt'}}) }}
+            <button type="submit" class="btn btn-primary btn-block">{{ ui.icon('plus', 18) }} Importer et trier</button>
+        {{ form_end(form) }}
+    </section>
+
+    {% if classified > 0 %}
+        <p class="hint">Déjà trié : {{ counts.expense ?? 0 }} dépense{{ (counts.expense ?? 0) > 1 ? 's' }}, {{ counts.fixed ?? 0 }} dépense{{ (counts.fixed ?? 0) > 1 ? 's' }} fixe{{ (counts.fixed ?? 0) > 1 ? 's' }}, {{ counts.income ?? 0 }} revenu{{ (counts.income ?? 0) > 1 ? 's' }}, {{ counts.ignored ?? 0 }} ignorée{{ (counts.ignored ?? 0) > 1 ? 's' }}.</p>
+    {% endif %}
+{% endblock %}

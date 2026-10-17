@@ -13,6 +13,7 @@ use App\Repository\FixedExpenseRepository;
 use App\Repository\UserRepository;
 use App\Service\CategoryDefaults;
 use App\Service\MonthSummary;
+use App\Tests\Import\StatementParserTest;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -27,7 +28,7 @@ class BuddyFlowTest extends WebTestCase
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
         $this->em->getConnection()->executeStatement('SET FOREIGN_KEY_CHECKS=0');
-        foreach (['expense', 'monthly_budget', 'budget', 'fixed_expense', 'income', 'category', '`user`'] as $table) {
+        foreach (['imported_transaction', 'expense', 'monthly_budget', 'budget', 'fixed_expense', 'income', 'category', '`user`'] as $table) {
             $this->em->getConnection()->executeStatement('TRUNCATE '.$table);
         }
         $this->em->getConnection()->executeStatement('SET FOREIGN_KEY_CHECKS=1');
@@ -289,6 +290,84 @@ class BuddyFlowTest extends WebTestCase
         $this->client->submit($crawler->selectButton('Budgets habituels')->form());
         $this->assertResponseRedirects('/budget/mois/2026-12');
         $this->assertSame([$food->getName() => 40000, $leisure->getName() => 10000], $budgets('2026-12-10'));
+    }
+
+    public function testImportAndTriage(): void
+    {
+        $user = $this->createUser('import@example.com');
+        $this->client->loginUser($user);
+        $categories = static::getContainer()->get(CategoryRepository::class)->findForUser($user);
+        $byName = array_combine(array_map(fn ($c) => $c->getName(), $categories), $categories);
+
+        // Import du CSV Crédit Agricole
+        $csv = sys_get_temp_dir().'/CA'.uniqid().'.csv';
+        file_put_contents($csv, mb_convert_encoding(StatementParserTest::CA_CSV, 'Windows-1252', 'UTF-8'));
+        $crawler = $this->client->request('GET', '/import');
+        $form = $crawler->selectButton('Importer et trier')->form();
+        $form['form[file]']->upload($csv);
+        $this->client->submit($form);
+        $this->assertResponseRedirects('/import/tri');
+        $this->client->followRedirect();
+        $this->assertSelectorTextContains('.flash', '5 opérations importées');
+
+        // Plus ancienne d'abord : salaire (crédit) → revenu mensuel
+        $crawler = $this->client->request('GET', '/import/tri');
+        $this->assertSelectorTextContains('.triage-progress', '5 opérations à trier');
+        $this->assertSame('Salaire Acme', $crawler->filter('.triage-label')->attr('value'));
+        $this->client->submit($crawler->selectButton('Revenu mensuel')->form());
+        $this->assertResponseRedirects('/import/tri');
+
+        // Café : catégorie Restaurants suggérée par mot-clé, validée
+        $crawler = $this->client->request('GET', '/import/tri');
+        $this->assertSame('Cafe Du Coin', $crawler->filter('.triage-label')->attr('value'));
+        $this->assertSelectorTextContains('.is-suggested', 'Restaurants');
+        $this->client->submit($crawler->filter('.is-suggested')->form());
+
+        // 2ᵉ café identique : la suggestion vient de l'apprentissage ; on l'ignore puis on annule
+        $crawler = $this->client->request('GET', '/import/tri');
+        $this->assertSelectorTextContains('.is-suggested', 'Restaurants');
+        $this->client->submit($crawler->selectButton('Ignorer')->form());
+        $crawler = $this->client->request('GET', '/import/tri');
+        $this->assertSelectorTextContains('.triage-progress', '2 opérations à trier');
+        $this->client->submit($crawler->filter('#undo-form')->form());
+        $crawler = $this->client->request('GET', '/import/tri');
+        $this->assertSelectorTextContains('.triage-progress', '3 opérations à trier');
+        $this->client->submit($crawler->filter('.is-suggested')->form());
+
+        // Netflix : dépense fixe en Abonnements pendant 12 mois
+        $crawler = $this->client->request('GET', '/import/tri');
+        $this->assertSame('Netflix.com', $crawler->filter('.triage-label')->attr('value'));
+        $this->client->submit($crawler->selectButton('Enregistrer comme dépense fixe')->form([
+            'fixed_category' => (string) $byName['Abonnements']->getId(),
+            'months' => '12',
+            'label' => 'Netflix',
+        ]));
+
+        // Carrefour : on choisit Alimentation (déjà suggéré par mot-clé)
+        $crawler = $this->client->request('GET', '/import/tri');
+        $this->assertSelectorTextContains('.is-suggested', 'Alimentation');
+        $this->client->submit($crawler->filter('.triage-categories button')->eq(0)->form());
+
+        $crawler = $this->client->request('GET', '/import/tri');
+        $this->assertSelectorTextContains('.triage-done', 'Tout est trié');
+
+        // Résultat : 3 dépenses (2 cafés + Carrefour), 1 fixe sur 12 mois, 1 revenu
+        $this->em->clear();
+        $this->assertSame(3, static::getContainer()->get(ExpenseRepository::class)->count(['user' => $user]));
+        $fixed = static::getContainer()->get(FixedExpenseRepository::class)->findForUser($user);
+        $this->assertSame(['Netflix', 1399, '2026-10', '2027-09'], [$fixed[0]->getLabel(), $fixed[0]->getAmount(), $fixed[0]->getStartMonth()->format('Y-m'), $fixed[0]->getEndMonth()->format('Y-m')]);
+        $this->assertSame('Abonnements', $fixed[0]->getCategory()->getName());
+        $this->assertSame(1, static::getContainer()->get(\App\Repository\IncomeRepository::class)->count(['user' => $user]));
+
+        // Ré-import du même fichier : tout est reconnu comme doublon
+        $crawler = $this->client->request('GET', '/import');
+        $form = $crawler->selectButton('Importer et trier')->form();
+        $form['form[file]']->upload($csv);
+        $this->client->submit($form);
+        $this->assertResponseRedirects('/import');
+        $this->client->followRedirect();
+        $this->assertSelectorTextContains('.flash', '0 opération importée (5 déjà connues, ignorées)');
+        unlink($csv);
     }
 
     private function createUser(string $email): User

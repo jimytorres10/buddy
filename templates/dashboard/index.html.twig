@@ -10,6 +10,17 @@
         <a href="{{ path('app_menu') }}" class="round-btn" aria-label="Paramètres">{{ ui.icon('settings', 24) }}</a>
     </header>
 
+    {% if pendingImports > 0 %}
+        <a href="{{ path('app_import_triage') }}" class="card import-banner">
+            {{ ui.pill('upload', 'orange') }}
+            <span class="tile-label">
+                {{ pendingImports }} opération{{ pendingImports > 1 ? 's' }} importée{{ pendingImports > 1 ? 's' }} à trier
+                <span class="tile-sub">Elles ne comptent pas encore dans tes budgets</span>
+            </span>
+            {{ ui.icon('chevron-right', 20) }}
+        </a>
+    {% endif %}
+
     <div class="desk-grid">
     <div class="desk-col">
     {# Carte principale : reste disponible + dernières dépenses #}

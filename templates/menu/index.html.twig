@@ -39,6 +39,9 @@
         <a href="{{ path('app_planning_edit', {section: 'budgets'}) }}" class="row row-link">
             {{ ui.pill('pie', 'blue') }}<span class="row-label">Budgets par catégorie</span>{{ ui.icon('chevron-right', 18) }}
         </a>
+        <a href="{{ path('app_import') }}" class="row row-link">
+            {{ ui.pill('upload', 'orange') }}<span class="row-label">Importer mes opérations bancaires</span>{{ ui.icon('chevron-right', 18) }}
+        </a>
         <a href="{{ path('app_category_index') }}" class="row row-link">
             {{ ui.pill('tag', 'purple') }}<span class="row-label">Catégories</span>{{ ui.icon('chevron-right', 18) }}
         </a>

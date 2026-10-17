@@ -9,7 +9,10 @@
 {% block content %}
     <header class="page-header">
         <h1 class="greeting">Dépenses</h1>
-        <a href="{{ path('app_expense_new') }}" class="round-btn" aria-label="Ajouter une dépense">{{ ui.icon('plus', 24) }}</a>
+        <div class="header-actions">
+            <a href="{{ path('app_import') }}" class="round-btn" aria-label="Importer mes opérations bancaires" title="Importer mes opérations bancaires">{{ ui.icon('upload', 22) }}</a>
+            <a href="{{ path('app_expense_new') }}" class="round-btn" aria-label="Ajouter une dépense">{{ ui.icon('plus', 24) }}</a>
+        </div>
     </header>
 
     <div class="month-nav">

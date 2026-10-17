@@ -1,0 +1,108 @@
+{% extends 'layout_app.html.twig' %}
+{% import '_icons.html.twig' as ui %}
+
+{% block title %}Trier mes opérations · Buddy{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <a href="{{ path('app_import') }}" class="round-btn round-btn-sm" aria-label="Retour">{{ ui.icon('chevron-left', 20) }}</a>
+        <h1 class="page-header-title">Trier mes opérations</h1>
+        {% if canUndo %}
+            <form method="post" action="{{ path('app_import_undo') }}" id="undo-form">
+                <input type="hidden" name="_token" value="{{ csrf_token('import_undo') }}">
+                <button type="submit" class="round-btn round-btn-sm" aria-label="Annuler la dernière décision" title="Annuler (Retour arrière)">{{ ui.icon('refresh', 18) }}</button>
+            </form>
+        {% else %}
+            <span class="round-btn-placeholder"></span>
+        {% endif %}
+    </header>
+
+    {% if not transaction %}
+        <section class="card card-pad triage-done">
+            {{ ui.pill('check', 'green', 'lg') }}
+            <h2 class="card-title">Tout est trié !</h2>
+            <p class="card-sub">Tes dépenses importées sont dans tes budgets.</p>
+            <div class="section-actions">
+                <a href="{{ path('app_expense_index') }}" class="btn btn-soft">Voir mes dépenses</a>
+                <a href="{{ path('app_import') }}" class="btn btn-ghost">Importer un fichier</a>
+            </div>
+        </section>
+    {% else %}
+        {% set t = transaction %}
+        <div class="triage" data-controller="swipe">
+            <p class="triage-progress">{{ remaining }} opération{{ remaining > 1 ? 's' }} à trier</p>
+
+            <form method="post" action="{{ path('app_import_classify', {id: t.id}) }}" class="triage-card card{{ t.credit ? ' is-credit' }}" data-swipe-target="card">
+                <input type="hidden" name="_token" value="{{ csrf_token('classify' ~ t.id) }}">
+
+                <span class="triage-stamp triage-stamp-right" aria-hidden="true">{{ t.credit ? 'Revenu' : (suggestion ? suggestion.name : 'Catégorie ?') }}</span>
+                <span class="triage-stamp triage-stamp-left" aria-hidden="true">Ignorer</span>
+                <span class="triage-stamp triage-stamp-up" aria-hidden="true">Fixe</span>
+
+                <div class="triage-head">
+                    <span class="triage-date">{{ t.date|day_label }} {{ t.date|date('Y') }}</span>
+                    <span class="triage-amount {{ t.credit ? 'is-positive' }}">{{ t.amount|money('+-') }}</span>
+                    <label class="sr-only" for="triage-label">Libellé</label>
+                    <input id="triage-label" class="input triage-label" name="label" value="{{ t.label }}" maxlength="120" autocomplete="off">
+                    <span class="triage-raw" title="Libellé de la banque">{{ t.rawLabel }}</span>
+                </div>
+
+                {% if t.credit %}
+                    <p class="triage-question">Rentrée d'argent : c'est un revenu qui revient chaque mois ?</p>
+                    <div class="triage-actions">
+                        <button type="submit" name="decision" value="ignore" class="btn btn-ghost" data-swipe-target="left">{{ ui.icon('x', 18) }} Ignorer</button>
+                        <button type="submit" name="decision" value="income" class="btn btn-primary" data-swipe-target="right">{{ ui.icon('arrow-in', 18) }} Revenu mensuel</button>
+                    </div>
+                {% else %}
+                    <p class="triage-question">
+                        {% if suggestion %}Suggestion : <strong>{{ suggestion.name }}</strong> — ou choisis une autre catégorie{% else %}Dans quelle catégorie ?{% endif %}
+                    </p>
+                    <div class="triage-categories">
+                        {% for category in categories %}
+                            <button type="submit" name="category" value="{{ category.id }}"
+                                    class="category-option-btn{{ suggestion and suggestion.id == category.id ? ' is-suggested' }}"
+                                    data-swipe-target="{{ suggestion and suggestion.id == category.id ? 'category right' : 'category' }}">
+                                {{ ui.pill(category.icon, category.color) }}
+                                <span>{{ category.name }}</span>
+                                {% if loop.index <= 9 %}<kbd class="desktop-only">{{ loop.index }}</kbd>{% endif %}
+                            </button>
+                        {% endfor %}
+                    </div>
+
+                    <details class="triage-fixed" data-swipe-target="fixed">
+                        <summary>{{ ui.icon('repeat', 16) }} C'est une dépense fixe (abonnement, loyer, échéance…)</summary>
+                        <div class="triage-fixed-fields">
+                            <div class="item-field">
+                                <label class="field-label" for="fixed-category">Catégorie</label>
+                                <select id="fixed-category" name="fixed_category" class="input">
+                                    <option value="">Aucune</option>
+                                    {% for category in categories %}
+                                        <option value="{{ category.id }}"{{ suggestion and suggestion.id == category.id ? ' selected' }}>{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="item-field">
+                                <label class="field-label" for="fixed-months">Pendant</label>
+                                <div class="input-suffixed">
+                                    <input id="fixed-months" type="number" name="months" min="1" max="120" class="input" placeholder="∞">
+                                    <span class="input-suffix">mois</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="item-period-hint">À partir de {{ t.date|month_label|lower }}. Laisse vide pour « tous les mois ».</p>
+                        <button type="submit" name="decision" value="fixed" class="btn btn-soft btn-block">{{ ui.icon('repeat', 18) }} Enregistrer comme dépense fixe</button>
+                    </details>
+
+                    <div class="triage-actions">
+                        <button type="submit" name="decision" value="ignore" class="btn btn-ghost" data-swipe-target="left">{{ ui.icon('x', 18) }} Ignorer</button>
+                    </div>
+                {% endif %}
+            </form>
+
+            <p class="triage-help">
+                <span class="mobile-only">Glisse à droite pour valider{{ t.credit ? '' : ' la suggestion' }}, à gauche pour ignorer{{ t.credit ? '' : ', vers le haut pour une dépense fixe' }}.</span>
+                <span class="desktop-only">Clavier : → valider · ← ignorer{{ t.credit ? '' : ' · ↑ dépense fixe · 1-9 catégorie' }} · Retour arrière annuler.</span>
+            </p>
+        </div>
+    {% endif %}
+{% endblock %}
