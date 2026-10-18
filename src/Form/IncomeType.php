@@ -15,6 +15,7 @@ class IncomeType extends AbstractType
         $builder
             ->add('label', TextType::class, ['label' => 'Libellé', 'attr' => ['placeholder' => 'Salaire']])
             ->add('amount', AmountType::class, ['label' => 'Montant / mois']);
+        PeriodFields::add($builder);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

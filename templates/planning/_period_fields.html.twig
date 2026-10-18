@@ -1,0 +1,30 @@
+{#
+    Champs de période (contrôleur Stimulus « period ») : dates « De / À », nombre de mois, ou ce mois-ci seulement.
+    Variables : item (formulaire avec startMonth, endMonth, duration), hint (texte d'aide par défaut).
+#}
+<div class="period-switch" role="group" aria-label="Type de période">
+    <button type="button" class="period-switch-btn" data-period-target="modeBtn" data-mode="dates" data-action="period#select">Choisir les dates</button>
+    <button type="button" class="period-switch-btn" data-period-target="modeBtn" data-mode="duration" data-action="period#select">Nombre de mois</button>
+    <button type="button" class="period-switch-btn" data-action="period#thisMonth">Ce mois-ci seulement</button>
+</div>
+<div class="item-period-fields">
+    <div class="item-field">
+        {{ form_label(item.startMonth) }}
+        {{ form_widget(item.startMonth, {attr: {'data-period-target': 'start', 'data-action': 'period#refresh'}}) }}
+        {{ form_errors(item.startMonth) }}
+    </div>
+    <div class="item-field" data-period-target="endField">
+        {{ form_label(item.endMonth) }}
+        {{ form_widget(item.endMonth, {attr: {'data-period-target': 'end'}}) }}
+        {{ form_errors(item.endMonth) }}
+    </div>
+    <div class="item-field" data-period-target="durationField" hidden>
+        {{ form_label(item.duration) }}
+        <div class="input-suffixed">
+            {{ form_widget(item.duration, {attr: {'data-period-target': 'duration', 'data-action': 'period#refresh'}}) }}
+            <span class="input-suffix">mois</span>
+        </div>
+        {{ form_errors(item.duration) }}
+    </div>
+</div>
+<p class="item-period-hint" data-period-target="hint">{{ hint }}</p>

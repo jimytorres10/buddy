@@ -1,0 +1,12 @@
+{# Libellé d'une période : « Janvier 2027 → Décembre 2027 », « À partir de… », « Jusqu'à… ». Variable : item. #}
+{%- if item.startMonth and item.endMonth -%}
+    {%- if item.startMonth|date('Y-m') == item.endMonth|date('Y-m') -%}
+        {{ item.startMonth|month_label }} seulement
+    {%- else -%}
+        {{ item.startMonth|month_label }} → {{ item.endMonth|month_label }}
+    {%- endif -%}
+{%- elseif item.startMonth -%}
+    À partir de {{ item.startMonth|month_label|lower }}
+{%- elseif item.endMonth -%}
+    Jusqu'à {{ item.endMonth|month_label|lower }}
+{%- endif -%}

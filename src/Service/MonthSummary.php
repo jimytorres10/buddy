@@ -36,7 +36,8 @@ class MonthSummary
      */
     public function compute(User $user, \DateTimeImmutable $month): array
     {
-        $income = array_sum(array_map(fn ($i) => $i->getAmount(), $this->incomes->findForUser($user)));
+        // Revenus du mois : hors période = 0, sinon montant changé sur la période ou habituel
+        $income = array_sum(array_map(fn ($i) => $i->getAmountIn($month), $this->incomes->findForUser($user)));
         $fixed = array_sum(array_map(
             fn ($f) => $f->getAmount(),
             array_filter($this->fixedExpenses->findForUser($user), fn ($f) => $f->isActiveIn($month)),

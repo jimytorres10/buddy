@@ -3,9 +3,12 @@
 namespace App\Controller;
 
 use App\Entity\Category;
+use App\Entity\Income;
+use App\Entity\IncomeChange;
 use App\Entity\MonthlyBudget;
 use App\Entity\User;
 use App\Form\CategoryType;
+use App\Form\IncomeChangeType;
 use App\Form\MonthBudgetsType;
 use App\Repository\BudgetRepository;
 use App\Repository\CategoryRepository;
@@ -152,6 +155,42 @@ class PlanningController extends AbstractController
             'spent' => $expenses->sumByCategoryForMonth($user, $month),
             'impact' => $report->impact($user, $month),
         ]);
+    }
+
+    /** Changer le montant d'un revenu sur une période (ex. salaire réduit pendant 2027). */
+    #[Route('/revenus/{id}/changements', name: 'app_income_changes', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
+    #[IsGranted(OwnerVoter::MANAGE, 'income')]
+    public function incomeChanges(Income $income, Request $request, EntityManagerInterface $em): Response
+    {
+        $change = (new IncomeChange())->setStartMonth(new \DateTimeImmutable('first day of next month midnight'));
+        $form = $this->createForm(IncomeChangeType::class, $change)->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $income->addChange($change);
+            $em->flush();
+            $this->addFlash('success', 'Changement de montant enregistré.');
+
+            return $this->redirectToRoute('app_income_changes', ['id' => $income->getId()], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('planning/income_changes.html.twig', [
+            'income' => $income,
+            'form' => $form,
+        ], new Response(status: $form->isSubmitted() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
+    }
+
+    #[Route('/revenus/changements/{id}/supprimer', name: 'app_income_change_delete', methods: ['POST'])]
+    #[IsGranted(OwnerVoter::MANAGE, 'change')]
+    public function deleteIncomeChange(IncomeChange $change, Request $request, EntityManagerInterface $em): Response
+    {
+        $income = $change->getIncome();
+        if ($this->isCsrfTokenValid('delete-change'.$change->getId(), $request->getPayload()->getString('_token'))) {
+            $income->removeChange($change);
+            $em->flush();
+            $this->addFlash('success', 'Changement supprimé : le montant habituel s\'applique de nouveau.');
+        }
+
+        return $this->redirectToRoute('app_income_changes', ['id' => $income->getId()], Response::HTTP_SEE_OTHER);
     }
 
     #[Route('/{section}', name: 'app_planning_edit', requirements: ['section' => 'revenus|depenses-fixes|budgets'])]

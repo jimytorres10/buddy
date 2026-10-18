@@ -1,0 +1,62 @@
+{% extends 'layout_app.html.twig' %}
+{% import '_icons.html.twig' as ui %}
+
+{% block title %}{{ income.label }} · Buddy{% endblock %}
+
+{% block content %}
+    <header class="page-header">
+        <a href="{{ path('app_planning') }}" class="round-btn round-btn-sm" aria-label="Retour">{{ ui.icon('chevron-left', 20) }}</a>
+        <h1 class="page-header-title">{{ income.label }}</h1>
+        <span class="round-btn-placeholder"></span>
+    </header>
+
+    {% set today = date() %}
+    <section class="card card-body">
+        <div class="row">
+            {{ ui.pill('arrow-in', 'green') }}
+            <span class="row-text">
+                <span class="row-label">Montant habituel</span>
+                {% if income.hasPeriod %}
+                    <span class="period-badge">{{ ui.icon('calendar', 13) }} {% include 'planning/_period_label.html.twig' with {item: income} only %}</span>
+                {% endif %}
+            </span>
+            <span class="row-amount is-positive">{{ income.amount|money }}</span>
+        </div>
+    </section>
+
+    <h2 class="section-title">Changements de montant</h2>
+    <section class="card card-body">
+        {% for change in income.changes %}
+            {% set status = change.statusIn(today) %}
+            <div class="row{{ status == 'past' ? ' is-inactive' }}">
+                {{ ui.pill(change.amount < income.amount ? 'arrow-out' : 'arrow-in', change.amount < income.amount ? 'orange' : 'green') }}
+                <span class="row-text">
+                    <span class="row-label">{% include 'planning/_period_label.html.twig' with {item: change} only %}</span>
+                    <span class="row-sub">
+                        {{ status == 'active' ? 'En cours' : (status == 'upcoming' ? 'À venir' : 'Terminé') }}
+                        · {{ (change.amount - income.amount)|money('+-') }} / mois
+                    </span>
+                </span>
+                <span class="row-amount">{{ change.amount|money }}</span>
+                <form method="post" action="{{ path('app_income_change_delete', {id: change.id}) }}" class="row-form">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete-change' ~ change.id) }}">
+                    <button type="submit" class="icon-btn icon-btn-danger" aria-label="Supprimer ce changement">{{ ui.icon('trash', 18) }}</button>
+                </form>
+            </div>
+        {% else %}
+            <p class="empty-inline">Aucun changement : {{ income.amount|money }} tous les mois.</p>
+        {% endfor %}
+    </section>
+
+    <h2 class="section-title">Changer le montant sur une période</h2>
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'card card-pad stack'}}) }}
+        {{ form_row(form.amount) }}
+        <div class="item-period" data-controller="period" data-period-mode-value="{{ form.duration.vars.value is not empty ? 'duration' : 'dates' }}">
+            {% include 'planning/_period_fields.html.twig' with {
+                item: form,
+                hint: 'Laisse « À » vide si le changement dure. Ex. : salaire réduit de janvier à décembre 2027, puis retour au montant habituel.',
+            } only %}
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Enregistrer le changement</button>
+    {{ form_end(form) }}
+{% endblock %}

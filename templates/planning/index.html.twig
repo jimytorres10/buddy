@@ -28,12 +28,27 @@
         <a href="{{ path('app_planning_edit', {section: 'revenus'}) }}" class="section-link">Modifier</a>
     </h2>
     <div class="card card-body">
+        {% set today = date() %}
         {% for income in incomes %}
-            <div class="row">
+            {% set status = income.statusIn(today) %}
+            {% set change = income.changeIn(today) %}
+            {% set next = income.nextChange(today) %}
+            <a href="{{ path('app_income_changes', {id: income.id}) }}" class="row row-link{{ status != 'active' ? ' is-inactive' }}" title="Changer le montant sur une période">
                 {{ ui.pill('arrow-in', 'green') }}
-                <span class="row-label">{{ income.label }}</span>
-                <span class="row-amount is-positive">{{ income.amount|money }}</span>
-            </div>
+                <span class="row-text">
+                    <span class="row-label">{{ income.label }}</span>
+                    {% if income.hasPeriod %}
+                        <span class="period-badge">{{ ui.icon('calendar', 13) }} {% include 'planning/_period_label.html.twig' with {item: income} only %}{{ status == 'past' ? ' · terminé' : (status == 'upcoming' ? ' · à venir') }}</span>
+                    {% endif %}
+                    {% if change %}
+                        <span class="period-badge">{{ ui.icon('refresh', 13) }} Au lieu de {{ income.amount|money }}{% if change.endMonth %}, jusqu'à {{ change.endMonth|month_label|lower }}{% endif %}</span>
+                    {% elseif next and status != 'past' %}
+                        <span class="period-badge">{{ ui.icon('refresh', 13) }} {{ next.amount|money }} à partir de {{ next.startMonth|month_label|lower }}</span>
+                    {% endif %}
+                </span>
+                <span class="row-amount is-positive">{{ (status == 'active' ? income.amountIn(today) : income.amount)|money }}</span>
+                {{ ui.icon('chevron-right', 18) }}
+            </a>
         {% else %}
             <a href="{{ path('app_planning_edit', {section: 'revenus'}) }}" class="empty-inline">Aucun revenu défini — ajouter</a>
         {% endfor %}

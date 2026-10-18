@@ -1,10 +1,9 @@
 import { Controller } from '@hotwired/stimulus';
 
 const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-const DEFAULT_HINT = 'Laisse vide pour « tous les mois ». Ex. : rappel d\'impôts de septembre à décembre.';
 
 /*
- * Période d'une dépense fixe : dates de début/fin, ou « pendant N mois » à partir du début.
+ * Période (dépense fixe, revenu…) : dates de début/fin, « pendant N mois » à partir du début, ou ce mois-ci seulement.
  * Le calcul de la fin est refait côté serveur ; ici on ne fait qu'afficher l'aperçu.
  */
 export default class extends Controller {
@@ -12,6 +11,7 @@ export default class extends Controller {
     static values = { mode: String };
 
     connect() {
+        this.defaultHint = this.hintTarget.textContent;
         this.apply();
     }
 
@@ -26,6 +26,14 @@ export default class extends Controller {
         this.apply();
     }
 
+    thisMonth() {
+        this.modeValue = 'duration';
+        this.startTarget.value = this.currentMonth();
+        this.durationTarget.value = '1';
+        this.apply();
+        this.element.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
     refresh() {
         this.apply();
     }
@@ -35,7 +43,7 @@ export default class extends Controller {
         this.modeBtnTargets.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.mode === this.modeValue)));
         this.endFieldTarget.hidden = byDuration;
         this.durationFieldTarget.hidden = !byDuration;
-        this.hintTarget.textContent = byDuration ? this.preview() : DEFAULT_HINT;
+        this.hintTarget.textContent = byDuration ? this.preview() : this.defaultHint;
     }
 
     preview() {
@@ -47,6 +55,10 @@ export default class extends Controller {
         const end = new Date(year, month - 1 + months - 1, 1);
         // On garde la fin calculée dans le champ « À » pour que l'affichage reste cohérent
         this.endTarget.value = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}`;
+
+        if (months === 1) {
+            return `Seulement en ${MONTHS[month - 1]} ${year}.`;
+        }
 
         return `Soit de ${MONTHS[month - 1]} ${year} à ${MONTHS[end.getMonth()]} ${end.getFullYear()} (${months} mois).`;
     }

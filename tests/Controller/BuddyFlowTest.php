@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Repository\CategoryRepository;
 use App\Repository\ExpenseRepository;
 use App\Repository\FixedExpenseRepository;
+use App\Repository\IncomeRepository;
 use App\Repository\UserRepository;
 use App\Service\CategoryDefaults;
 use App\Service\MonthSummary;
@@ -29,7 +30,7 @@ class BuddyFlowTest extends WebTestCase
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
         $this->em->getConnection()->executeStatement('SET FOREIGN_KEY_CHECKS=0');
-        foreach (['imported_transaction', 'expense', 'monthly_budget', 'budget', 'fixed_expense', 'income', 'category', '`user`'] as $table) {
+        foreach (['imported_transaction', 'expense', 'monthly_budget', 'budget', 'fixed_expense', 'income_change', 'income', 'category', '`user`'] as $table) {
             $this->em->getConnection()->executeStatement('TRUNCATE '.$table);
         }
         $this->em->getConnection()->executeStatement('SET FOREIGN_KEY_CHECKS=1');
@@ -216,6 +217,63 @@ class BuddyFlowTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/');
         $this->assertStringContainsString('Animaux', $crawler->filter('.budget-line')->text());
+    }
+
+    public function testIncomeForOneMonthAndChangeOverAPeriod(): void
+    {
+        $user = $this->createUser('revenus@example.com');
+        $this->em->persist((new Income())->setUser($user)->setLabel('Salaire')->setAmount(240000));
+        $this->em->flush();
+        $this->client->loginUser($user);
+        $summary = static::getContainer()->get(MonthSummary::class);
+        $month = fn (string $ym) => new \DateTimeImmutable($ym.'-01');
+
+        // Prime de 500 € seulement ce mois-ci (« pendant 1 mois » depuis le mois en cours)
+        $crawler = $this->client->request('GET', '/budget/revenus');
+        $form = $crawler->selectButton('Enregistrer')->form();
+        $values = $form->getPhpValues();
+        $values['recurring_items']['items'][1] = ['label' => 'Prime', 'amount' => '500', 'startMonth' => '', 'endMonth' => '', 'duration' => '1'];
+        $this->client->request('POST', '/budget/revenus', $values);
+        $this->assertResponseRedirects('/budget');
+        $now = new \DateTimeImmutable('first day of this month');
+        $this->assertSame(290000, $summary->compute($user, $now)['income']);
+        $this->assertSame(240000, $summary->compute($user, $now->modify('+1 month'))['income']);
+
+        // Salaire réduit à 1 900 € pendant toute l'année 2027, puis retour au montant habituel
+        $salary = static::getContainer()->get(IncomeRepository::class)->findOneBy(['label' => 'Salaire']);
+        $crawler = $this->client->request('GET', '/budget/revenus/'.$salary->getId().'/changements');
+        $this->assertResponseIsSuccessful();
+        $this->client->submit($crawler->selectButton('Enregistrer le changement')->form(), [
+            'income_change[amount]' => '1900',
+            'income_change[startMonth]' => '2027-01',
+            'income_change[endMonth]' => '2027-12',
+        ]);
+        $this->assertResponseRedirects();
+        $this->assertStringContainsString('Janvier 2027 → Décembre 2027', $this->client->followRedirect()->filter('main')->text());
+        $this->em->clear();
+        $user = static::getContainer()->get(UserRepository::class)->find($user->getId());
+        $this->assertSame(240000, $summary->compute($user, $month('2026-12'))['income']);
+        $this->assertSame(190000, $summary->compute($user, $month('2027-01'))['income']);
+        $this->assertSame(190000, $summary->compute($user, $month('2027-12'))['income']);
+        $this->assertSame(240000, $summary->compute($user, $month('2028-01'))['income']);
+
+        // Sans mois de début → erreur
+        $crawler = $this->client->request('GET', '/budget/revenus/'.$salary->getId().'/changements');
+        $this->client->submit($crawler->selectButton('Enregistrer le changement')->form(), ['income_change[amount]' => '1000', 'income_change[startMonth]' => '']);
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertSelectorTextContains('.field-errors', 'Indique à partir de quel mois.');
+
+        // Supprimer le changement → 2 400 € de nouveau en 2027
+        $crawler = $this->client->request('GET', '/budget/revenus/'.$salary->getId().'/changements');
+        $this->client->submit($crawler->filter('.row-form')->form());
+        $this->em->clear();
+        $user = static::getContainer()->get(UserRepository::class)->find($user->getId());
+        $this->assertSame(240000, $summary->compute($user, $month('2027-06'))['income']);
+
+        // Un autre utilisateur ne peut pas voir les changements de ce revenu
+        $this->client->loginUser($this->createUser('intrus@example.com'));
+        $this->client->request('GET', '/budget/revenus/'.$salary->getId().'/changements');
+        $this->assertResponseStatusCodeSame(403);
     }
 
     public function testFixedExpenseLimitedToPeriod(): void
